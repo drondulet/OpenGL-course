@@ -1,16 +1,13 @@
 package;
 
-import haxe.Timer;
 import lime.app.Application;
 import lime.graphics.WebGL2RenderContext;
-import lime.graphics.opengl.GL;
 import lime.graphics.opengl.GLBuffer;
 import lime.graphics.opengl.GLProgram;
 import lime.graphics.opengl.GLShader;
 import lime.graphics.opengl.GLUniformLocation;
 import lime.graphics.RenderContext;
-import lime.ui.Window;
-import lime.utils.Assets;
+import lime.math.Matrix4;
 import lime.utils.Float32Array;
 import lime.utils.Log;
 
@@ -25,7 +22,9 @@ class Main extends Application {
 	private var triOffset: Float = 0.0;
 	private var moveDirection: Int = 1;
 	
-	private var uniformMoveX: GLUniformLocation;
+	private var uniformModel: GLUniformLocation;
+	
+	private var model: Matrix4;
 	
 	public function new() {
 		super();
@@ -65,6 +64,8 @@ class Main extends Application {
 			return;
 		}
 		
+		model = new Matrix4();
+		
 		triangleBuffer = createTriangleBuffer();
 		currentProgram = createProgram();
 	}
@@ -98,11 +99,11 @@ class Main extends Application {
 			
 			layout (location = 0) in vec3 pos;
 			
-			uniform float moveX;
+			uniform mat4 model;
 			
 			void main()
 			{
-				gl_Position = vec4(0.5 * pos.x + moveX, 0.5 * pos.y, pos.z, 1.0);
+				gl_Position = model * vec4(0.5 * pos.x, 0.5 * pos.y, pos.z, 1.0);
 			}";
 	}
 	
@@ -141,7 +142,7 @@ class Main extends Application {
 			Log.error(message);
 		}
 		
-		uniformMoveX = gl.getUniformLocation(shaderProgram, "moveX");
+		uniformModel = gl.getUniformLocation(shaderProgram, "model");
 		
 		return shaderProgram;
 	}
@@ -164,13 +165,15 @@ class Main extends Application {
 					moveDirection *= -1;
 				}
 				
+				model.prependTranslation(triOffset - model.position.x, 0.0, 0.0);
+				
 				gl.viewport(0, 0, window.width, window.height);
 				
 				gl.clearColor(0.0, 0.0, 0.0, 1.0);
 				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 				
 				gl.useProgram(currentProgram);
-				gl.uniform1f(uniformMoveX, triOffset);
+				gl.uniformMatrix4fv(uniformModel, false, model);
 				gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
 				
 				gl.drawArrays(gl.TRIANGLES, 0, 3);
