@@ -20,6 +20,13 @@ class Main extends Application {
 	private var triangleBuffer: GLBuffer;
 	private var currentProgram: GLProgram;
 	
+	private var triMoveIncrement: Float = 0.01;
+	private var triMaxOffset: Float = 0.5;
+	private var triOffset: Float = 0.0;
+	private var moveDirection: Int = 1;
+	
+	private var uniformMoveX: GLUniformLocation;
+	
 	public function new() {
 		super();
 	}
@@ -91,9 +98,11 @@ class Main extends Application {
 			
 			layout (location = 0) in vec3 pos;
 			
+			uniform float moveX;
+			
 			void main()
 			{
-				gl_Position = vec4(0.5 * pos.x, 0.5 * pos.y, pos.z, 1.0);
+				gl_Position = vec4(0.5 * pos.x + moveX, 0.5 * pos.y, pos.z, 1.0);
 			}";
 	}
 	
@@ -132,6 +141,8 @@ class Main extends Application {
 			Log.error(message);
 		}
 		
+		uniformMoveX = gl.getUniformLocation(shaderProgram, "moveX");
+		
 		return shaderProgram;
 	}
 	
@@ -147,12 +158,19 @@ class Main extends Application {
 					return;
 				}
 				
+				triOffset += moveDirection > 0 ? triMoveIncrement : triMoveIncrement * -1;
+				
+				if (Math.abs(triOffset) > triMaxOffset) {
+					moveDirection *= -1;
+				}
+				
 				gl.viewport(0, 0, window.width, window.height);
 				
 				gl.clearColor(0.0, 0.0, 0.0, 1.0);
 				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
 				
 				gl.useProgram(currentProgram);
+				gl.uniform1f(uniformMoveX, triOffset);
 				gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
 				
 				gl.drawArrays(gl.TRIANGLES, 0, 3);
