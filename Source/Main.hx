@@ -22,6 +22,8 @@ class Main extends Application {
 	private var triMaxOffset: Float = 0.5;
 	private var triOffset: Float = 0.0;
 	private var moveDirection: Int = 1;
+	private var curRotation: Float = 0.0;
+	private var curScale: Float = 0.4;
 	
 	private var uniformModel: GLUniformLocation;
 	
@@ -106,7 +108,7 @@ class Main extends Application {
 			
 			void main()
 			{
-				gl_Position = model * vec4(0.5 * pos.x, 0.5 * pos.y, pos.z, 1.0);
+				gl_Position = model * vec4(pos, 1.0);
 			}";
 	}
 	
@@ -168,10 +170,18 @@ class Main extends Application {
 					moveDirection *= -1;
 				}
 				
+				curScale += 0.005 * moveDirection;
+				
+				curRotation += 1;
+				if (curRotation > 360.0) {
+					curRotation -= 360.0;
+				}
+				
 				model = new Matrix4();
 				
 				model.appendTranslation(triOffset - model.position.x, 0.0, 0.0);
-				model.prependRotation(45, new Vector4(0.0, 0.0, 1.0));
+				model.prependRotation(curRotation, new Vector4(0.0, 0.0, 1.0));
+				model.prependScale(curScale, curScale, 0.0);
 				
 				gl.viewport(0, 0, window.width, window.height);
 				
