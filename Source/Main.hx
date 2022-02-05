@@ -8,6 +8,7 @@ import lime.graphics.opengl.GLShader;
 import lime.graphics.opengl.GLUniformLocation;
 import lime.graphics.RenderContext;
 import lime.math.Matrix4;
+import lime.math.Vector4;
 import lime.utils.Float32Array;
 import lime.utils.Log;
 
@@ -65,6 +66,8 @@ class Main extends Application {
 		}
 		
 		model = new Matrix4();
+		// model.appendRotation(90, new Vector4(0.0, 0.0, 1.0));
+		
 		
 		triangleBuffer = createTriangleBuffer();
 		currentProgram = createProgram();
@@ -165,7 +168,10 @@ class Main extends Application {
 					moveDirection *= -1;
 				}
 				
-				model.prependTranslation(triOffset - model.position.x, 0.0, 0.0);
+				model = new Matrix4();
+				
+				model.appendTranslation(triOffset - model.position.x, 0.0, 0.0);
+				model.prependRotation(45, new Vector4(0.0, 0.0, 1.0));
 				
 				gl.viewport(0, 0, window.width, window.height);
 				
