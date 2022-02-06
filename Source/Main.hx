@@ -104,11 +104,14 @@ class Main extends Application {
 			
 			layout (location = 0) in vec3 pos;
 			
+			out vec4 vertColor;
+			
 			uniform mat4 model;
 			
 			void main()
 			{
-				gl_Position = model * vec4(pos, 1.0);
+				gl_Position = model * vec4(pos, 1.0f);
+				vertColor = vec4(clamp(pos, 0.0f, 1.0f), 1.0f);
 			}";
 	}
 	
@@ -117,11 +120,13 @@ class Main extends Application {
 			"#version 300 es
 			precision mediump float;
 			
+			in vec4 vertColor;
+			
 			out vec4 color;
 			
 			void main()
 			{
-				color = vec4(1.0, 0.0, 0.0, 1.0);
+				color = vertColor;
 			}";
 	}
 	
