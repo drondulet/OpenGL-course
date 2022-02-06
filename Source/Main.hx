@@ -6,16 +6,20 @@ import lime.graphics.opengl.GLBuffer;
 import lime.graphics.opengl.GLProgram;
 import lime.graphics.opengl.GLShader;
 import lime.graphics.opengl.GLUniformLocation;
+import lime.graphics.opengl.GLVertexArrayObject;
 import lime.graphics.RenderContext;
 import lime.math.Matrix4;
 import lime.math.Vector4;
 import lime.utils.Float32Array;
+import lime.utils.UInt16Array;
 import lime.utils.Log;
 
 class Main extends Application {
 	
 	private var gl: WebGL2RenderContext;
+	private var triangleVAO: GLVertexArrayObject;
 	private var triangleBuffer: GLBuffer;
+	private var triangleIndexBuffer: GLBuffer;
 	private var currentProgram: GLProgram;
 	
 	private var triMoveIncrement: Float = 0.01;
@@ -71,30 +75,53 @@ class Main extends Application {
 		// model.appendRotation(90, new Vector4(0.0, 0.0, 1.0));
 		
 		
-		triangleBuffer = createTriangleBuffer();
+		createTriangleBuffers();
 		currentProgram = createProgram();
+		
 	}
 	
-	private function createTriangleBuffer(): GLBuffer {
+	private function createTriangleBuffers(): Void {
 		
-		var vertecies: Float32Array = new Float32Array([
-			-1.0, -1.0, 0.0,
-			 1.0, -1.0, 0.0,
-			 0.0,  1.0, 0.0
+		var indicies: UInt16Array = new UInt16Array([
+			0, 3, 1,
+			1, 3, 2,
+			2, 3, 0,
+			0, 1, 2
 		]);
 		
-		// Создание буфера
-		var vertexBuffer: GLBuffer = gl.createBuffer();
-		// Активация буфера
-		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+		var vertecies: Float32Array = new Float32Array([
+			-1.0, -1.0,  0.0,
+			 0.0, -0.5,  1.0,
+			 1.0, -1.0,  0.0,
+			 0.0,  1.0,  0.0
+		]);
+		
+		triangleVAO = gl.createVertexArray();
+		gl.bindVertexArray(triangleVAO);
+		
+		// Создание идекс буфера
+		triangleIndexBuffer = gl.createBuffer();
+		// Активация индекс буфера
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triangleIndexBuffer);
+		// Копирование статичных индексов
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indicies, gl.STATIC_DRAW);
+		
+		// Создание вертекс буфера
+		var triangleBuffer: GLBuffer = gl.createBuffer();
+		// Активация вертекс буфера
+		gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
 		// Копировение статичных (не изменяемых) точек в буфер 
 		gl.bufferData(gl.ARRAY_BUFFER, vertecies, gl.STATIC_DRAW);
+		
 		// Определяем 3 точки на координату, без оффсетов и прочих смещений
 		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 		// Вкл индекса атрибута
 		gl.enableVertexAttribArray(0);
 		
-		return vertexBuffer;
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		gl.bindVertexArray(null);
+		// After VAO
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 	}
 	
 	private function getVertexShader(): String {
@@ -184,23 +211,31 @@ class Main extends Application {
 				
 				model = new Matrix4();
 				
-				model.appendTranslation(triOffset - model.position.x, 0.0, 0.0);
-				model.prependRotation(curRotation, new Vector4(0.0, 0.0, 1.0));
-				model.prependScale(curScale, curScale, 0.0);
+				// model.appendTranslation(triOffset - model.position.x, 0.0, 0.0);
+				model.prependRotation(curRotation, new Vector4(0.0, 1.0, 0.0));
+				// model.prependScale(curScale, curScale, 0.0);
+				model.prependScale(0.5, 0.5, 0.5);
 				
 				gl.viewport(0, 0, window.width, window.height);
+				gl.enable(gl.DEPTH_TEST);
 				
-				gl.clearColor(0.0, 0.0, 0.0, 1.0);
-				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+				gl.clearColor(0.05, 0.05, 0.05, 1.0);
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 				
 				gl.useProgram(currentProgram);
 				gl.uniformMatrix4fv(uniformModel, false, model);
-				gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
 				
-				gl.drawArrays(gl.TRIANGLES, 0, 3);
+				gl.bindVertexArray(triangleVAO);
 				
-				gl.bindBuffer(gl.ARRAY_BUFFER, null);
+				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, triangleIndexBuffer);
+				gl.drawElements(gl.TRIANGLES, 12, gl.UNSIGNED_SHORT, 0);
+				gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+				
+				gl.bindVertexArray(null);
+				
 				gl.useProgram(null);
+				
+				gl.disable(gl.DEPTH_TEST);
 				
 			default:
 				Log.warn("Current render context not supported by this sample");
@@ -212,98 +247,6 @@ class Main extends Application {
 	 ****************************************************************
 	
 	**/
-	
-	// private function compile():Void {
-		
-	// 	var program = gl.createProgram();
-	// 	var vertex = Assets.getText("assets/heroku.vert");
-		
-	// 	#if desktop
-	// 	var fragment = "";
-	// 	#else
-	// 	var fragment = "precision mediump float;";
-	// 	#end
-		
-	// 	fragment += Assets.getText("assets/" + fragmentShaders[currentIndex] + ".frag");
-		
-	// 	var vs = createShader(vertex, gl.VERTEX_SHADER);
-	// 	var fs = createShader(fragment, gl.FRAGMENT_SHADER);
-		
-	// 	if(vs == null || fs == null) return;
-		
-	// 	gl.attachShader(program, vs);
-	// 	gl.attachShader(program, fs);
-		
-	// 	gl.deleteShader(vs);
-	// 	gl.deleteShader(fs);
-		
-	// 	gl.linkProgram(program);
-		
-	// 	if(gl.getProgramParameter(program, gl.LINK_STATUS) == 0) {
-			
-	// 		trace(gl.getProgramInfoLog(program));
-	// 		trace("VALIDATE_STATUS: " + gl.getProgramParameter(program, gl.VALIDATE_STATUS));
-	// 		trace("ERROR: " + gl.getError());
-	// 		return;
-			
-	// 	}
-		
-	// 	if(currentProgram != null) {
-			
-	// 		gl.deleteProgram(currentProgram);
-			
-	// 	}
-		
-	// 	currentProgram = program;
-		
-	// 	positionAttribute = gl.getAttribLocation(currentProgram, "surfacePosAttrib");
-	// 	gl.enableVertexAttribArray(positionAttribute);
-		
-	// 	vertexPosition = gl.getAttribLocation(currentProgram, "position");
-	// 	gl.enableVertexAttribArray(vertexPosition);
-		
-	// 	timeUniform = gl.getUniformLocation(program, "time");
-	// 	mouseUniform = gl.getUniformLocation(program, "mouse");
-	// 	resolutionUniform = gl.getUniformLocation(program, "resolution");
-	// 	backbufferUniform = gl.getUniformLocation(program, "backbuffer");
-	// 	surfaceSizeUniform = gl.getUniformLocation(program, "surfaceSize");
-		
-	// 	startTime = Timer.stamp();
-	// 	currentTime = startTime;
-	// }
-	
-	// private function createShader(source:String, type:Int):GLShader {
-		
-	// 	var gl = window.context.webgl;
-		
-	// 	var shader = gl.createShader(type);
-	// 	gl.shaderSource(shader, source);
-	// 	gl.compileShader(shader);
-		
-	// 	if(gl.getShaderParameter(shader, gl.COMPILE_STATUS) == 0) {
-			
-	// 		trace(gl.getShaderInfoLog(shader));
-	// 		trace(source);
-	// 		return null;
-			
-	// 	}
-	// 	return shader;
-	// }
-	
-	// private function randomizeArray<T>(array:Array<T>):Array<T> {
-		
-	// 	var arrayCopy = array.copy();
-	// 	var randomArray = new Array<T>();
-		
-	// 	while(arrayCopy.length > 0) {
-			
-	// 		var randomIndex = Math.round(Math.random() *(arrayCopy.length - 1));
-	// 		randomArray.push(arrayCopy.splice(randomIndex, 1)[0]);
-			
-	// 	}
-	// 	return randomArray;
-	// }
-	
 	
 	// public override function update(deltaTime:Int):Void {
 		
