@@ -14,6 +14,7 @@ import lime.utils.Float32Array;
 import lime.utils.UInt16Array;
 import lime.utils.Log;
 
+
 class Main extends Application {
 	
 	private var gl: WebGL2RenderContext;
@@ -30,8 +31,10 @@ class Main extends Application {
 	private var curScale: Float = 0.4;
 	
 	private var uniformModel: GLUniformLocation;
+	private var uniformProjection: GLUniformLocation;
 	
 	private var model: Matrix4;
+	private var projection: Matrix4;
 	
 	public function new() {
 		super();
@@ -72,8 +75,7 @@ class Main extends Application {
 		}
 		
 		model = new Matrix4();
-		// model.appendRotation(90, new Vector4(0.0, 0.0, 1.0));
-		
+		projection = getPerspective(45, window.width / window.height, 0.1, 100);
 		
 		createTriangleBuffers();
 		currentProgram = createProgram();
@@ -134,10 +136,11 @@ class Main extends Application {
 			out vec4 vertColor;
 			
 			uniform mat4 model;
+			uniform mat4 projection;
 			
 			void main()
 			{
-				gl_Position = model * vec4(pos, 1.0f);
+				gl_Position = projection * model * vec4(pos, 1.0f);
 				vertColor = vec4(clamp(pos, 0.0f, 1.0f), 1.0f);
 			}";
 	}
@@ -180,6 +183,7 @@ class Main extends Application {
 		}
 		
 		uniformModel = gl.getUniformLocation(shaderProgram, "model");
+		uniformProjection = gl.getUniformLocation(shaderProgram, "projection");
 		
 		return shaderProgram;
 	}
@@ -211,7 +215,7 @@ class Main extends Application {
 				
 				model = new Matrix4();
 				
-				// model.appendTranslation(triOffset - model.position.x, 0.0, 0.0);
+				model.prependTranslation(triOffset, 0.0, -2.0);
 				model.prependRotation(curRotation, new Vector4(0.0, 1.0, 0.0));
 				// model.prependScale(curScale, curScale, 0.0);
 				model.prependScale(0.5, 0.5, 0.5);
@@ -224,6 +228,7 @@ class Main extends Application {
 				
 				gl.useProgram(currentProgram);
 				gl.uniformMatrix4fv(uniformModel, false, model);
+				gl.uniformMatrix4fv(uniformProjection, false, projection);
 				
 				gl.bindVertexArray(triangleVAO);
 				
@@ -242,6 +247,34 @@ class Main extends Application {
 		}
 	}
 	
+	public static function getPerspective(fovY: Float, aspectRatio: Float, zNear: Float, zFar: Float): Matrix4 {
+		
+		var rad: Float = fovY * (Math.PI / 180);
+		var f: Float = 1.0 / Math.tan(rad / 2);
+		var t: Float = 1.0 / (zFar - zNear);
+		var mat: Matrix4 = new Matrix4(new Float32Array([
+			f / aspectRatio,
+			0.0,
+			0.0,
+			0.0,
+			
+			0.0,
+			f,
+			0.0,
+			0.0,
+			
+			0.0,
+			0.0,
+			(zFar + zNear) * t,
+			-1.0,
+			
+			0.0,
+			0.0,
+			2 * zFar * zNear * t,
+			0.0]));
+		
+		return mat;
+	}
 	/**
 	
 	 ****************************************************************

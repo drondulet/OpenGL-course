@@ -1,0 +1,1 @@
+lime build windows -Dmingw -DHXCPP_MINGW -DHXCPP_CPP11
