@@ -4,27 +4,23 @@ import lime.utils.Assets;
 import lime.app.Application;
 import lime.graphics.WebGL2RenderContext;
 import lime.graphics.RenderContext;
-import lime.math.Matrix4;
-import lime.math.Vector4;
 import lime.utils.Float32Array;
 import lime.utils.UInt32Array;
 import lime.utils.Log;
+import mme.math.glmatrix.Mat4;
+import mme.math.glmatrix.Vec3;
+
+using mme.math.glmatrix.Mat4Tools;
 
 
 class Main extends Application {
 	
 	private var gl: WebGL2RenderContext;
 	private var currentProgram: Shader;
+	private var camera: Camera;
 	
-	private var triMoveIncrement: Float = 0.01;
-	private var triMaxOffset: Float = 0.5;
-	private var triOffset: Float = 0.0;
-	private var moveDirection: Int = 1;
-	private var curRotation: Float = 0.0;
-	private var curScale: Float = 0.4;
-	
-	private var model: Matrix4;
-	private var projection: Matrix4;
+	private var model: Mat4;
+	private var projection: Mat4;
 	
 	private var meshes: Array<Mesh> = [];
 	
@@ -66,12 +62,14 @@ class Main extends Application {
 			return;
 		}
 		
-		projection = getPerspective(45, window.width / window.height, 0.1, 100);
+		projection = Mat4Tools.perspective(45, window.width / window.height, 0.1, 100);
 		
 		createMeshes();
 		
 		currentProgram = new Shader(gl);
 		currentProgram.createFromString(getVertexShader(), getFragmentShader(), window.context);
+		
+		camera = new Camera(window, Vec3.fromValues(0, 0, 0), Vec3.fromValues(0, 1, 0), -90, 0);
 	}
 	
 	private function createMeshes(): Void {
@@ -135,25 +133,8 @@ class Main extends Application {
 			return;
 		}
 		
-		triOffset += moveDirection > 0 ? triMoveIncrement : triMoveIncrement * -1;
-		
-		if (Math.abs(triOffset) > triMaxOffset) {
-			moveDirection *= -1;
-		}
-		
-		curScale += 0.005 * moveDirection;
-		
-		curRotation += 1;
-		if (curRotation > 360.0) {
-			curRotation -= 360.0;
-		}
-		
-		model = new Matrix4();
-		
-		model.prependTranslation(triOffset, 0.0, -2.0);
-		model.prependRotation(curRotation, new Vector4(0.0, 1.0, 0.0));
-		// model.prependScale(curScale, curScale, 0.0);
-		model.prependScale(0.5, 0.5, 0.5);
+		model = new Mat4();
+		model.translate(Vec3.fromValues(0, 0, -5), model);
 		
 		gl.viewport(0, 0, window.width, window.height);
 		gl.enable(gl.DEPTH_TEST);
@@ -163,45 +144,23 @@ class Main extends Application {
 		
 		currentProgram.use();
 		gl.uniformMatrix4fv(currentProgram.uniformModel, false, model);
+		gl.uniformMatrix4fv(currentProgram.uniformView, false, camera.getViewMatrinx());
 		gl.uniformMatrix4fv(currentProgram.uniformProjection, false, projection);
 		
-		meshes[0].renderMesh();
+		for (mesh in meshes) {
+			mesh.renderMesh();
+		}
 		
 		gl.useProgram(null);
 		
 		gl.disable(gl.DEPTH_TEST);
 	}
 	
-	public static function getPerspective(fovY: Float, aspectRatio: Float, zNear: Float, zFar: Float): Matrix4 {
-		
-		var rad: Float = fovY * (Math.PI / 180);
-		var f: Float = 1.0 / Math.tan(rad / 2);
-		var t: Float = 1.0 / (zFar - zNear);
-		var mat: Matrix4 = new Matrix4(new Float32Array([
-			f / aspectRatio,
-			0.0,
-			0.0,
-			0.0,
-			
-			0.0,
-			f,
-			0.0,
-			0.0,
-			
-			0.0,
-			0.0,
-			(zFar + zNear) * t,
-			-1.0,
-			
-			0.0,
-			0.0,
-			2 * zFar * zNear * t,
-			0.0]));
-		
-		return mat;
-	}
 	
-	// public override function update(deltaTime: Int):Void {
+	public override function update(deltaTime: Int):Void {
 		
-	// }
+		if (camera != null) {
+			camera.update(deltaTime / 1000);
+		}
+	}
 }

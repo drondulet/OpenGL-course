@@ -10,6 +10,7 @@ import lime.utils.Log;
 class Shader {
 	
 	public var uniformModel(default, null): Null<GLUniformLocation>;
+	public var uniformView(default, null): Null<GLUniformLocation>;
 	public var uniformProjection(default, null): Null<GLUniformLocation>;
 	
 	private var gl: WebGL2RenderContext;
@@ -47,6 +48,7 @@ class Shader {
 		}
 		
 		uniformModel = gl.getUniformLocation(program, "model");
+		uniformView = gl.getUniformLocation(program, "view");
 		uniformProjection = gl.getUniformLocation(program, "projection");
 	}
 	
