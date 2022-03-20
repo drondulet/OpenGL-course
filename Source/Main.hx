@@ -23,6 +23,7 @@ class Main extends Application {
 	private var projection: Mat4;
 	
 	private var meshes: Array<Mesh> = [];
+	private var brick: Texture;
 	
 	public function new() {
 		super();
@@ -82,16 +83,19 @@ class Main extends Application {
 		]);
 		
 		var vertecies: Float32Array = new Float32Array([
-			-1.0, -1.0,  0.0,
-			 0.0, -0.5,  1.0,
-			 1.0, -1.0,  0.0,
-			 0.0,  1.0,  0.0
+			-1.0, -1.0,  0.0,	0.0, 0.0,
+			 0.0, -0.5,  1.0,	0.0, 1.0,
+			 1.0, -1.0,  0.0,	1.0, 0.0,
+			 0.0,  1.0,  0.0,	0.5, 1.0
 		]);
 		
 		var mesh: Mesh = new Mesh(gl);
 		mesh.createMesh(vertecies, indicies);
 		
 		meshes.push(mesh);
+		
+		brick = new Texture(gl);
+		brick.load(Assets.getImage("assets/brick.png"));
 	}
 	
 	private function getVertexShader(): String {
@@ -109,6 +113,8 @@ class Main extends Application {
 		}
 		
 		currentProgram.dispose();
+		
+		brick.dispose();
 		
 		super.onWindowClose();
 	}
@@ -147,6 +153,7 @@ class Main extends Application {
 		gl.uniformMatrix4fv(currentProgram.uniformView, false, camera.getViewMatrinx());
 		gl.uniformMatrix4fv(currentProgram.uniformProjection, false, projection);
 		
+		brick.use();
 		for (mesh in meshes) {
 			mesh.renderMesh();
 		}
