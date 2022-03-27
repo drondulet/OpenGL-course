@@ -9,15 +9,15 @@ import lime.utils.UInt32Array;
 
 class Mesh {
 	
-	private var gl: WebGL2RenderContext;
 	private var meshVAO: GLVertexArrayObject;
 	private var vertexBuffer: GLBuffer;
 	private var indexBuffer: GLBuffer;
 	private var indexCount: Int;
 	
-	public function new(gl: WebGL2RenderContext) {
+	private var gl(get, never): WebGL2RenderContext;
+	
+	public function new() {
 		
-		this.gl = gl;
 		meshVAO = null;
 		vertexBuffer = null;
 		indexBuffer = null;
@@ -90,5 +90,9 @@ class Mesh {
 		}
 		
 		indexCount = -1;
+	}
+	
+	inline private function get_gl(): WebGL2RenderContext {
+		return GraphicsContext.gl;
 	}
 }

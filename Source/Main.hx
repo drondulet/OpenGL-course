@@ -24,6 +24,7 @@ class Main extends Application {
 	
 	private var meshes: Array<Mesh> = [];
 	private var brick: Texture;
+	private var light: Light;
 	
 	public function new() {
 		super();
@@ -47,30 +48,19 @@ class Main extends Application {
 	
 	private function init(): Void {
 		
-		gl =
-			switch (window.context.type) {
-				
-				case WEBGL: window.context.webgl2;
-				case OPENGL: window.context.gl;
-				case OPENGLES: window.context.gles3;
-				
-				default: null;
-			};
-		
-		if (gl == null) {
-			
-			Log.error('Can not get render context');
-			return;
-		}
+		GraphicsContext.init(window);
+		gl = GraphicsContext.gl;
 		
 		projection = Mat4Tools.perspective(45, window.width / window.height, 0.1, 100);
 		
 		createMeshes();
 		
-		currentProgram = new Shader(gl);
+		currentProgram = new Shader();
 		currentProgram.createFromString(getVertexShader(), getFragmentShader(), window.context);
 		
 		camera = new Camera(window, Vec3.fromValues(0, 0, 0), Vec3.fromValues(0, 1, 0), -90, 0);
+		
+		light = new Light(1, 1, 1, 0.2);
 	}
 	
 	private function createMeshes(): Void {
@@ -89,12 +79,12 @@ class Main extends Application {
 			 0.0,  1.0,  0.0,	0.5, 1.0
 		]);
 		
-		var mesh: Mesh = new Mesh(gl);
+		var mesh: Mesh = new Mesh();
 		mesh.createMesh(vertecies, indicies);
 		
 		meshes.push(mesh);
 		
-		brick = new Texture(gl);
+		brick = new Texture();
 		brick.load(Assets.getImage("assets/brick.png"));
 	}
 	
@@ -149,6 +139,9 @@ class Main extends Application {
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		
 		currentProgram.use();
+		
+		light.use(currentProgram.uniformAmbientIntensity, currentProgram.uniformAmbientColor);
+		
 		gl.uniformMatrix4fv(currentProgram.uniformModel, false, model);
 		gl.uniformMatrix4fv(currentProgram.uniformView, false, camera.getViewMatrinx());
 		gl.uniformMatrix4fv(currentProgram.uniformProjection, false, projection);

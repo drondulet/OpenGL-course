@@ -46,7 +46,7 @@ class Camera {
 		right = new Vec3();
 		up = new Vec3();
 		
-		moveSpeed = 100;
+		moveSpeed = 50;
 		turnSpeed = 0.25;
 		
 		accelMultiplier = 3;
