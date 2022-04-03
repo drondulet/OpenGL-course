@@ -14,6 +14,8 @@ class Shader {
 	public var uniformProjection(default, null): Null<GLUniformLocation>;
 	public var uniformAmbientColor(default, null): Null<GLUniformLocation>;
 	public var uniformAmbientIntensity(default, null): Null<GLUniformLocation>;
+	public var uniformDirection(default, null): Null<GLUniformLocation>;
+	public var uniformDiffuseIntensity(default, null): Null<GLUniformLocation>;
 	
 	private var program(default, null): GLProgram;
 	private var gl(get, never): WebGL2RenderContext;
@@ -53,6 +55,9 @@ class Shader {
 		uniformProjection = gl.getUniformLocation(program, "projection");
 		uniformAmbientColor = gl.getUniformLocation(program, "directionalLight.color");
 		uniformAmbientIntensity = gl.getUniformLocation(program, "directionalLight.ambientIntensity");
+		
+		uniformDirection = gl.getUniformLocation(program, "directionalLight.direction");
+		uniformDiffuseIntensity = gl.getUniformLocation(program, "directionalLight.diffIntensity");
 	}
 	
 	public function use(): Void {
