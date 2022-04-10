@@ -18,11 +18,12 @@ class Camera {
 	public var turnSpeed: Float;
 	public var accelMultiplier: Float;
 	
+	public var position(default, null): Vec3;
+	
 	private var up: Vec3;
 	private var front: Vec3;
 	private var right: Vec3;
 	private var worldUp: Vec3;
-	private var position: Vec3;
 	private var newPosition: Vec3;
 	
 	private var yaw: Float;

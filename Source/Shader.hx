@@ -16,6 +16,9 @@ class Shader {
 	public var uniformAmbientIntensity(default, null): Null<GLUniformLocation>;
 	public var uniformDirection(default, null): Null<GLUniformLocation>;
 	public var uniformDiffuseIntensity(default, null): Null<GLUniformLocation>;
+	public var uniformSpecularIntensity(default, null): Null<GLUniformLocation>;
+	public var uniformSpecularShininess(default, null): Null<GLUniformLocation>;
+	public var uniformCameraPosition(default, null): Null<GLUniformLocation>;
 	
 	private var program(default, null): GLProgram;
 	private var gl(get, never): WebGL2RenderContext;
@@ -58,6 +61,11 @@ class Shader {
 		
 		uniformDirection = gl.getUniformLocation(program, "directionalLight.direction");
 		uniformDiffuseIntensity = gl.getUniformLocation(program, "directionalLight.diffIntensity");
+		
+		uniformSpecularIntensity = gl.getUniformLocation(program, "material.specularIntensity");
+		uniformSpecularShininess = gl.getUniformLocation(program, "material.shininess");
+		
+		uniformCameraPosition = gl.getUniformLocation(program, "camPosition");
 	}
 	
 	public function use(): Void {

@@ -26,6 +26,7 @@ class Main extends Application {
 	private var meshes: Array<Mesh> = [];
 	private var brick: Texture;
 	private var light: Light;
+	private var material: Material;
 	
 	public function new() {
 		super();
@@ -63,6 +64,9 @@ class Main extends Application {
 		
 		light = new Light(1, 1, 1, 0.2);
 		light.direction = Vec3.fromValues(1, -1, -1);
+		light.diffuseIntensity = 0.1;
+		
+		material = new Material(1, 32);
 	}
 	
 	private function createMeshes(): Void {
@@ -150,8 +154,10 @@ class Main extends Application {
 		gl.uniformMatrix4fv(currentProgram.uniformModel, false, model);
 		gl.uniformMatrix4fv(currentProgram.uniformView, false, camera.getViewMatrinx());
 		gl.uniformMatrix4fv(currentProgram.uniformProjection, false, projection);
+		gl.uniform3fv(currentProgram.uniformCameraPosition, camera.position);
 		
 		brick.use();
+		material.useMaterial(currentProgram.uniformSpecularIntensity, currentProgram.uniformSpecularShininess);
 		for (mesh in meshes) {
 			mesh.renderMesh();
 		}
