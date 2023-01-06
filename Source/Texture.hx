@@ -37,6 +37,10 @@ class Texture {
 		gl.bindTexture(gl.TEXTURE_2D, texture);
 	}
 	
+	public function unUse(): Void {
+		gl.bindTexture(gl.TEXTURE_2D, null);
+	}
+	
 	public function dispose(): Void {
 		gl.deleteTexture(texture);
 	}

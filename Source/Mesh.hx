@@ -13,6 +13,7 @@ class Mesh {
 	private var vertexBuffer: GLBuffer;
 	private var indexBuffer: GLBuffer;
 	private var indexCount: Int;
+	private var attributesIndices: Array<Int>;
 	
 	private var gl(get, never): WebGL2RenderContext;
 	
@@ -46,12 +47,10 @@ class Mesh {
 		gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 		
 		// Определяем 3 точки на координату, без оффсетов и прочих смещений
+		attributesIndices = [0, 1, 2];
 		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 8, 0);
-		gl.enableVertexAttribArray(0);// Вкл индекса атрибута
 		gl.vertexAttribPointer(1, 2, gl.FLOAT, true, Float32Array.BYTES_PER_ELEMENT * 8, Float32Array.BYTES_PER_ELEMENT * 3);
-		gl.enableVertexAttribArray(1);
 		gl.vertexAttribPointer(2, 3, gl.FLOAT, true, Float32Array.BYTES_PER_ELEMENT * 8, Float32Array.BYTES_PER_ELEMENT * 5);
-		gl.enableVertexAttribArray(2);
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 		gl.bindVertexArray(null);
@@ -62,11 +61,15 @@ class Mesh {
 	public function renderMesh(): Void {
 		
 		gl.bindVertexArray(meshVAO);
-		
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-		gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_INT, 0);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 		
+		for (idx in attributesIndices) gl.enableVertexAttribArray(idx);
+		
+		gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_INT, 0);
+		
+		for (idx in attributesIndices) gl.disableVertexAttribArray(idx);
+		
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 		gl.bindVertexArray(null);
 	}
 	

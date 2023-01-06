@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
 	
-	<meta title="OpenGL course" package="org.openfl.lime.samples.herokushaders" version="1.0.0" company="OpenFL" />
+	<meta title="OpenGL course" package="com.opengl" version="1.0.0" company="OpenFL" />
 	<app main="Main" path="Export" file="main" />
+	
+	<window width="1280" height="720" fps="1000" vsync="true" unless="html5" />
 	
 	<source path="Source" />
 	

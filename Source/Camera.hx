@@ -81,7 +81,12 @@ class Camera {
 	private function singInputs(): Void {
 		
 		window.onKeyDown.add(onKeyDown);
+		// #if js
+		// var canvas: CanvasElement = cast Browser.document.getElementById("content");
+		// canvas.onmousemove = onMouseMove;
+		// #else
 		window.onMouseMoveRelative.add(onMouseMove);
+		// #end
 	}
 	
 	private function onKeyDown(keyCode: KeyCode, modifier: KeyModifier): Void {

@@ -1,12 +1,16 @@
 package;
 
-import lime.utils.Assets;
+#if js
+import js.Browser;
+import js.html.CanvasElement;
+#end
 import lime.app.Application;
-import lime.graphics.WebGL2RenderContext;
 import lime.graphics.RenderContext;
+import lime.graphics.WebGL2RenderContext;
+import lime.utils.Assets;
 import lime.utils.Float32Array;
-import lime.utils.UInt32Array;
 import lime.utils.Log;
+import lime.utils.UInt32Array;
 import mme.math.glmatrix.Mat4;
 import mme.math.glmatrix.Vec3;
 
@@ -17,7 +21,7 @@ using mme.math.glmatrix.Vec3Tools;
 class Main extends Application {
 	
 	private var gl: WebGL2RenderContext;
-	private var currentProgram: Shader;
+	private var currProgram: Shader;
 	private var camera: Camera;
 	
 	private var model: Mat4;
@@ -50,6 +54,11 @@ class Main extends Application {
 	
 	private function init(): Void {
 		
+		// #if js
+		// var canvas: CanvasElement = cast Browser.document.getElementById("content");
+		// canvas.onclick = () -> canvas.requestPointerLock();
+		// #end
+		
 		GraphicsContext.init(window);
 		gl = GraphicsContext.gl;
 		
@@ -57,8 +66,8 @@ class Main extends Application {
 		
 		createMeshes();
 		
-		currentProgram = new Shader();
-		currentProgram.createFromString(getVertexShader(), getFragmentShader(), window.context);
+		currProgram = new Shader();
+		currProgram.createFromString(getVertexShader(), getFragmentShader(), window.context);
 		
 		camera = new Camera(window, Vec3.fromValues(0, 0, 0), Vec3.fromValues(0, 1, 0), -90, 0);
 		
@@ -111,7 +120,7 @@ class Main extends Application {
 			mesh.dispose();
 		}
 		
-		currentProgram.dispose();
+		currProgram.dispose();
 		
 		brick.dispose();
 		
@@ -132,7 +141,7 @@ class Main extends Application {
 	
 	private function drawGl(): Void {
 		
-		if (currentProgram == null) {
+		if (currProgram == null) {
 			
 			Log.warn("No shader program");
 			return;
@@ -147,20 +156,21 @@ class Main extends Application {
 		gl.clearColor(0.05, 0.05, 0.05, 1.0);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		
-		currentProgram.use();
+		currProgram.use();
 		
-		light.use(currentProgram.uniformAmbientIntensity, currentProgram.uniformAmbientColor, currentProgram.uniformDiffuseIntensity, currentProgram.uniformDirection);
+		light.use(currProgram.uniformAmbientIntensity, currProgram.uniformAmbientColor, currProgram.uniformDiffuseIntensity, currProgram.uniformDirection);
 		
-		gl.uniformMatrix4fv(currentProgram.uniformModel, false, model);
-		gl.uniformMatrix4fv(currentProgram.uniformView, false, camera.getViewMatrinx());
-		gl.uniformMatrix4fv(currentProgram.uniformProjection, false, projection);
-		gl.uniform3fv(currentProgram.uniformCameraPosition, camera.position);
+		gl.uniformMatrix4fv(currProgram.uniformModel, false, model);
+		gl.uniformMatrix4fv(currProgram.uniformView, false, camera.getViewMatrinx());
+		gl.uniformMatrix4fv(currProgram.uniformProjection, false, projection);
+		gl.uniform3fv(currProgram.uniformCameraPosition, camera.position);
 		
 		brick.use();
-		material.useMaterial(currentProgram.uniformSpecularIntensity, currentProgram.uniformSpecularShininess);
+		material.useMaterial(currProgram.uniformSpecularIntensity, currProgram.uniformSpecularShininess);
 		for (mesh in meshes) {
 			mesh.renderMesh();
 		}
+		brick.unUse();
 		
 		gl.useProgram(null);
 		
@@ -176,7 +186,7 @@ class Main extends Application {
 	
 	private function calcAvgNormals(indicies: UInt32Array, vertecies: Float32Array, vLength: Int, normalOffset: Int): Void {
 		
-		var i: Int =0;
+		var i: Int = 0;
 		while (i < indicies.length) {
 			
 			var in0: Int = indicies[i] * vLength;
