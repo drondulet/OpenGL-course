@@ -179,7 +179,7 @@ class Shader {
 		
 		for (i in 0 ... ligthCount) {
 			
-			lights[i].use(pointLightsUniformLoc[i].ambientIntensity,
+			lights[i].usePoint(pointLightsUniformLoc[i].ambientIntensity,
 					pointLightsUniformLoc[i].color,
 					pointLightsUniformLoc[i].diffuseIntensity,
 					pointLightsUniformLoc[i].position,

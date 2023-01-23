@@ -11,7 +11,7 @@ class SpotLight extends PointLight {
 	public var direction(default, set): Vec3;
 	private function set_direction(value: Vec3): Vec3 {
 		
-		value.normalize(direction);
+		direction = value.normalize();
 		return value;
 	}
 	
