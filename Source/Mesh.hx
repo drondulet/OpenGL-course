@@ -53,9 +53,8 @@ class Mesh {
 		gl.vertexAttribPointer(2, 3, gl.FLOAT, true, Float32Array.BYTES_PER_ELEMENT * 8, Float32Array.BYTES_PER_ELEMENT * 5);
 		
 		gl.bindBuffer(gl.ARRAY_BUFFER, null);
-		gl.bindVertexArray(null);
-		// After VAO
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+		gl.bindVertexArray(null);
 	}
 	
 	public function renderMesh(): Void {

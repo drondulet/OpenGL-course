@@ -29,7 +29,8 @@ class Main extends Application {
 	
 	private var meshes: Array<Mesh> = [];
 	private var brick: Texture;
-	private var light: Light;
+	private var directionalLight: DirectinalLight;
+	private var pointLights: Array<PointLight>;
 	private var material: Material;
 	
 	public function new() {
@@ -69,22 +70,45 @@ class Main extends Application {
 		currProgram = new Shader();
 		currProgram.createFromString(getVertexShader(), getFragmentShader(), window.context);
 		
-		camera = new Camera(window, Vec3.fromValues(0, 0, 0), Vec3.fromValues(0, 1, 0), -90, 0);
+		camera = new Camera(window, Vec3.fromValues(0, 2, 0), Vec3.fromValues(0, 1, 0), -90, 0);
 		
-		light = new Light(1, 1, 1, 0.2);
-		light.direction = Vec3.fromValues(1, -1, -1);
-		light.diffuseIntensity = 0.1;
+		directionalLight = new DirectinalLight(1, 1, 1, 0.2);
+		directionalLight.direction = Vec3.fromValues(1, -1, -1);
+		directionalLight.diffuseIntensity = 0.1;
+		
+		var pointLight1 = new PointLight(0.0, 0.0, 1.0, 0.2);
+		pointLight1.position = Vec3.fromValues(-5.0, 6.0, 0.0);
+		
+		var pointLight2 = new PointLight(0.0, 1.0, 0.0, 0.2);
+		pointLight2.position = Vec3.fromValues(5.0, 6.0, 0.0);
+		
+		var pointLight3 = new PointLight(1.0, 1.0, 0.0, 0.2);
+		pointLight3.position = Vec3.fromValues(0.0, -2.0, 0.0);
+		
+		pointLights = [pointLight1, pointLight2, pointLight3];
+		
+		for (light in pointLights) {
+			
+			light.diffuseIntensity = 1;
+			light.exponent = 0.07;
+			light.linear = 0.14;
+			light.constant = 1;
+		}
+		
+		brick = new Texture();
+		brick.load(Assets.getImage("assets/brick.png"));
 		
 		material = new Material(1, 32);
 	}
 	
 	private function createMeshes(): Void {
 		
+		// pyramid
 		var indicies: UInt32Array = new UInt32Array([
-			0, 3, 1,
-			1, 3, 2,
-			2, 3, 0,
-			0, 1, 2
+			0, 1, 3,
+			1, 2, 3,
+			2, 0, 3,
+			0, 2, 1
 		]);
 		
 		var vertecies: Float32Array = new Float32Array([
@@ -102,8 +126,24 @@ class Main extends Application {
 		
 		meshes.push(mesh);
 		
-		brick = new Texture();
-		brick.load(Assets.getImage("assets/brick.png"));
+		// plane
+		var pIndicies = new UInt32Array([
+			0, 3, 1,
+			1, 3, 2
+		]);
+		
+		var pVertecies = new Float32Array([
+			//	x	y	z		u	v		norm x y z
+			-10.0, -5.0, -10.0,	0.0, 5.0,	0.0, -1.0, 0.0,
+			 10.0, -5.0, -10.0,	5.0, 5.0,	0.0, -1.0, 0.0,
+			 10.0, -5.0, 10.0,	5.0, 0.0,	0.0, -1.0, 0.0,
+			-10.0, -5.0, 10.0,	0.0, 0.0,	0.0, -1.0, 0.0,
+		]);
+		
+		mesh = new Mesh();
+		mesh.createMesh(pVertecies, pIndicies);
+		
+		meshes.push(mesh);
 	}
 	
 	private function getVertexShader(): String {
@@ -156,12 +196,15 @@ class Main extends Application {
 		gl.clearColor(0.05, 0.05, 0.05, 1.0);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		
-		currProgram.use();
+		gl.enable(gl.CULL_FACE);
+		gl.cullFace(gl.BACK);
 		
-		light.use(currProgram.uniformAmbientIntensity, currProgram.uniformAmbientColor, currProgram.uniformDiffuseIntensity, currProgram.uniformDirection);
+		currProgram.use();
+		currProgram.useDirectionalLight(directionalLight);
+		currProgram.usePointLights(pointLights);
 		
 		gl.uniformMatrix4fv(currProgram.uniformModel, false, model);
-		gl.uniformMatrix4fv(currProgram.uniformView, false, camera.getViewMatrinx());
+		gl.uniformMatrix4fv(currProgram.uniformView, false, camera.getViewMatrix());
 		gl.uniformMatrix4fv(currProgram.uniformProjection, false, projection);
 		gl.uniform3fv(currProgram.uniformCameraPosition, camera.position);
 		

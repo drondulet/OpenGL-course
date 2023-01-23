@@ -4,6 +4,7 @@ import lime.ui.KeyCode;
 import lime.ui.KeyModifier;
 import lime.ui.Window;
 import mme.math.glmatrix.Mat4;
+import mme.math.glmatrix.Vec2;
 import mme.math.glmatrix.Vec3;
 
 using Math;
@@ -24,10 +25,12 @@ class Camera {
 	private var front: Vec3;
 	private var right: Vec3;
 	private var worldUp: Vec3;
-	private var newPosition: Vec3;
 	
 	private var yaw: Float;
 	private var pitch: Float;
+	
+	private var movingDirection: Vec2;
+	private var currentAccel: Float;
 	
 	private var window: Window;
 	
@@ -38,7 +41,6 @@ class Camera {
 		this.window = window;
 		
 		position = pos;
-		newPosition = new Vec3();
 		worldUp = upDirection;
 		this.yaw = yaw.toRadians();
 		this.pitch = pitch.toRadians();
@@ -47,20 +49,31 @@ class Camera {
 		right = new Vec3();
 		up = new Vec3();
 		
-		moveSpeed = 50;
+		moveSpeed = 15;
 		turnSpeed = 0.25;
 		
 		accelMultiplier = 3;
+		currentAccel = 1;
+		
+		movingDirection = Vec2.fromValues(0, 0);
 		
 		singInputs();
 		updateOrientation();
 	}
 	
 	public function update(delta: Float): Void {
+		
 		this.delta = delta;
+		
+		if (movingDirection.x != 0 || movingDirection.y != 0) {
+			
+			var moveValue: Float = delta * moveSpeed * currentAccel;
+			position.scaleAndAdd(front, moveValue * movingDirection.x, position);
+			position.scaleAndAdd(right, moveValue * movingDirection.y, position);
+		}
 	}
 	
-	public function getViewMatrinx(): Mat4 {
+	public function getViewMatrix(): Mat4 {
 		return Mat4Tools.lookAt(position, position.add(front), worldUp);
 	}
 	
@@ -81,6 +94,7 @@ class Camera {
 	private function singInputs(): Void {
 		
 		window.onKeyDown.add(onKeyDown);
+		window.onKeyUp.add(onKeyUp);
 		// #if js
 		// var canvas: CanvasElement = cast Browser.document.getElementById("content");
 		// canvas.onmousemove = onMouseMove;
@@ -91,33 +105,28 @@ class Camera {
 	
 	private function onKeyDown(keyCode: KeyCode, modifier: KeyModifier): Void {
 		
-		function applyMove(forward: Int, strafe: Int): Void {
-			
-			var moveValue: Float = delta * moveSpeed * (modifier.shiftKey ? accelMultiplier : 1);
-			
-			if (forward != 0) {
-				position.scaleAndAdd(front, moveValue * forward, position);
-			}
-			else if (strafe != 0) {
-				position.scaleAndAdd(right, moveValue * strafe, position);
-			}
-			
-			// position.x = Math.abs(position.x) > 0.000001 ? position.x : 0;
-			// position.y = Math.abs(position.y) > 0.000001 ? position.y : 0;
-			// position.z = Math.abs(position.z) > 0.000001 ? position.z : 0;
-			
-			// haxe.Log.trace('Position: ${position}');
-		}
-		
 		switch (keyCode) {
 			
-			case W: applyMove(1, 0);
-			case S: applyMove(-1, 0);
-			case A: applyMove(0, -1);
-			case D: applyMove(0, 1);
+			case W: movingDirection.x = 1;
+			case S: movingDirection.x = -1;
+			case A: movingDirection.y = -1;
+			case D: movingDirection.y = 1;
+			case LEFT_SHIFT: currentAccel = accelMultiplier;
 			case F: 
 				window.fullscreen = !window.fullscreen;
 				window.mouseLock = window.fullscreen;
+			
+			default:
+		}
+	}
+	
+	private function onKeyUp(keyCode: KeyCode, modifier: KeyModifier): Void {
+		
+		switch (keyCode) {
+			
+			case W | S: movingDirection.x = 0;
+			case A | D: movingDirection.y = 0;
+			case LEFT_SHIFT: currentAccel = 1;
 			
 			default:
 		}
