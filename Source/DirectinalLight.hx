@@ -13,12 +13,12 @@ class DirectinalLight extends Light {
 		direction = Vec3.fromValues(0, -1, 0);
 	}
 	
-	public function use(ambIntencityLoc: GLUniformLocation, ambColorLocation: GLUniformLocation,
-		diffIntecityLoc: GLUniformLocation, directionLoc: GLUniformLocation): Void {
+	public function use(ambIntencityLoc: GLUniformLocation, ambColorLoc: GLUniformLocation,
+		diffuseIntensityLoc: GLUniformLocation, directionLoc: GLUniformLocation): Void {
 		
-		gl.uniform3fv(ambColorLocation, color);
+		gl.uniform3fv(ambColorLoc, color);
 		gl.uniform1f(ambIntencityLoc, ambientIntensity);
-		gl.uniform1f(diffIntecityLoc, diffuseIntensity);
+		gl.uniform1f(diffuseIntensityLoc, diffuseIntensity);
 		
 		gl.uniform3fv(directionLoc, direction);
 	}

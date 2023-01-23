@@ -23,9 +23,22 @@ typedef PointLightUniforms = {
 	var constant: Null<GLUniformLocation>;
 }
 
+typedef SpotLightUniforms = {
+	var color: Null<GLUniformLocation>;
+	var ambientIntensity: Null<GLUniformLocation>;
+	var diffuseIntensity: Null<GLUniformLocation>;
+	var position: Null<GLUniformLocation>;
+	var exponent: Null<GLUniformLocation>;
+	var linear: Null<GLUniformLocation>;
+	var constant: Null<GLUniformLocation>;
+	var direction: Null<GLUniformLocation>;
+	var edge: Null<GLUniformLocation>;
+}
+
 class Shader {
 	
-	static final MAX_POINTS_LIGHTS: Int = 3;
+	static final MAX_POINT_LIGHTS: Int = 3;
+	static final MAX_SPOT_LIGHTS: Int = 3;
 	
 	public var uniformModel(default, null): Null<GLUniformLocation>;
 	public var uniformView(default, null): Null<GLUniformLocation>;
@@ -38,6 +51,8 @@ class Shader {
 	private var directLightUniformLoc: DirectionalLightUniforms;
 	private var pointLightsUniformLoc: Array<PointLightUniforms>;
 	private var pointLightCountUniform: Null<GLUniformLocation>;
+	private var spotLightsUniformLoc: Array<SpotLightUniforms>;
+	private var spotLightCountUniform: Null<GLUniformLocation>;
 	private var program: GLProgram;
 	private var gl(get, never): WebGL2RenderContext;
 	
@@ -85,7 +100,7 @@ class Shader {
 		pointLightCountUniform = gl.getUniformLocation(program, "pointLightCount");
 		
 		pointLightsUniformLoc = [];
-		for (i in 0 ... MAX_POINTS_LIGHTS) {
+		for (i in 0 ... MAX_POINT_LIGHTS) {
 			
 			pointLightsUniformLoc.push({
 				color: gl.getUniformLocation(program, 'pointLights[$i].base.color'),
@@ -95,6 +110,24 @@ class Shader {
 				exponent: gl.getUniformLocation(program, 'pointLights[$i].exponent'),
 				linear: gl.getUniformLocation(program, 'pointLights[$i].linear'),
 				constant: gl.getUniformLocation(program, 'pointLights[$i].constant')
+			});
+		}
+		
+		spotLightCountUniform = gl.getUniformLocation(program, "spotLightCount");
+		
+		spotLightsUniformLoc = [];
+		for (i in 0 ... MAX_SPOT_LIGHTS) {
+			
+			spotLightsUniformLoc.push({
+				color: gl.getUniformLocation(program, 'spotLights[$i].base.base.color'),
+				ambientIntensity: gl.getUniformLocation(program, 'spotLights[$i].base.base.ambientIntensity'),
+				diffuseIntensity: gl.getUniformLocation(program, 'spotLights[$i].base.base.diffIntensity'),
+				position: gl.getUniformLocation(program, 'spotLights[$i].base.position'),
+				exponent: gl.getUniformLocation(program, 'spotLights[$i].base.exponent'),
+				linear: gl.getUniformLocation(program, 'spotLights[$i].base.linear'),
+				constant: gl.getUniformLocation(program, 'spotLights[$i].base.constant'),
+				direction: gl.getUniformLocation(program, 'spotLights[$i].direction'),
+				edge: gl.getUniformLocation(program, 'spotLights[$i].edge'),
 			});
 		}
 		
@@ -140,7 +173,7 @@ class Shader {
 	
 	public function usePointLights(lights: Array<PointLight>): Void {
 		
-		var ligthCount: Int = lights.length > MAX_POINTS_LIGHTS ? MAX_POINTS_LIGHTS : lights.length;
+		var ligthCount: Int = lights.length > MAX_POINT_LIGHTS ? MAX_POINT_LIGHTS : lights.length;
 		
 		gl.uniform1i(pointLightCountUniform, ligthCount);
 		
@@ -153,6 +186,26 @@ class Shader {
 					pointLightsUniformLoc[i].exponent,
 					pointLightsUniformLoc[i].linear,
 					pointLightsUniformLoc[i].constant);
+		}
+	}
+	
+	public function useSpotLights(lights: Array<SpotLight>): Void {
+		
+		var ligthCount: Int = lights.length > MAX_SPOT_LIGHTS ? MAX_SPOT_LIGHTS : lights.length;
+		
+		gl.uniform1i(spotLightCountUniform, ligthCount);
+		
+		for (i in 0 ... ligthCount) {
+			
+			lights[i].useSpot(spotLightsUniformLoc[i].ambientIntensity,
+					spotLightsUniformLoc[i].color,
+					spotLightsUniformLoc[i].diffuseIntensity,
+					spotLightsUniformLoc[i].position,
+					spotLightsUniformLoc[i].direction,
+					spotLightsUniformLoc[i].exponent,
+					spotLightsUniformLoc[i].linear,
+					spotLightsUniformLoc[i].constant,
+					spotLightsUniformLoc[i].edge);
 		}
 	}
 	

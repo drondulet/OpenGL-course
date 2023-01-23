@@ -31,6 +31,7 @@ class Main extends Application {
 	private var brick: Texture;
 	private var directionalLight: DirectinalLight;
 	private var pointLights: Array<PointLight>;
+	private var spotLights: Array<SpotLight>;
 	private var material: Material;
 	
 	public function new() {
@@ -76,6 +77,7 @@ class Main extends Application {
 		directionalLight.direction = Vec3.fromValues(1, -1, -1);
 		directionalLight.diffuseIntensity = 0.1;
 		
+		
 		var pointLight1 = new PointLight(0.0, 0.0, 1.0, 0.2);
 		pointLight1.position = Vec3.fromValues(-5.0, 6.0, 0.0);
 		
@@ -94,6 +96,23 @@ class Main extends Application {
 			light.linear = 0.14;
 			light.constant = 1;
 		}
+		
+		
+		var spotLight1 = new SpotLight(0.0, 0.0, 1.0, 0.2);
+		spotLight1.position = Vec3.fromValues(0.0, 5.0, -8.0);
+		spotLight1.direction = Vec3.fromValues(0.0, -1.0, 0.0);
+		spotLight1.edge = 20;
+		
+		spotLights = [spotLight1];
+		
+		for (light in spotLights) {
+			
+			light.diffuseIntensity = 1;
+			light.exponent = 0.0075;
+			light.linear = 0.045;
+			light.constant = 1;
+		}
+		
 		
 		brick = new Texture();
 		brick.load(Assets.getImage("assets/brick.png"));
@@ -202,6 +221,7 @@ class Main extends Application {
 		currProgram.use();
 		currProgram.useDirectionalLight(directionalLight);
 		currProgram.usePointLights(pointLights);
+		currProgram.useSpotLights(spotLights);
 		
 		gl.uniformMatrix4fv(currProgram.uniformModel, false, model);
 		gl.uniformMatrix4fv(currProgram.uniformView, false, camera.getViewMatrix());

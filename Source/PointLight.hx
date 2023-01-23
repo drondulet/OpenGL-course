@@ -19,13 +19,13 @@ class PointLight extends Light {
 		constant = 1.0;
 	}
 	
-	public function use(ambIntencityLoc: GLUniformLocation, ambColorLocation: GLUniformLocation,
-		diffIntecityLoc: GLUniformLocation, positionLoc: GLUniformLocation,
+	public function usePoint(ambIntencityLoc: GLUniformLocation, ambColorLoc: GLUniformLocation,
+		diffuseIntensityLoc: GLUniformLocation, positionLoc: GLUniformLocation,
 		expLoc: GLUniformLocation, linearLoc: GLUniformLocation, constLoc: GLUniformLocation): Void {
 		
-		gl.uniform3fv(ambColorLocation, color);
+		gl.uniform3fv(ambColorLoc, color);
 		gl.uniform1f(ambIntencityLoc, ambientIntensity);
-		gl.uniform1f(diffIntecityLoc, diffuseIntensity);
+		gl.uniform1f(diffuseIntensityLoc, diffuseIntensity);
 		
 		gl.uniform3fv(positionLoc, position);
 		
