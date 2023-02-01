@@ -1,21 +1,24 @@
 package;
 
-#if js
-import js.Browser;
-import js.html.CanvasElement;
-#end
 import lime.app.Application;
 import lime.graphics.RenderContext;
 import lime.graphics.WebGL2RenderContext;
 import lime.utils.Assets;
 import lime.utils.Float32Array;
 import lime.utils.Log;
+import lime.utils.UInt16Array;
 import lime.utils.UInt32Array;
 import mme.math.glmatrix.Mat4;
 import mme.math.glmatrix.Vec3;
+import scene.Node3d;
+import scene.Scene3d;
 
 using mme.math.glmatrix.Mat4Tools;
 using mme.math.glmatrix.Vec3Tools;
+#if js
+import js.Browser;
+import js.html.CanvasElement;
+#end
 
 
 class Main extends Application {
@@ -27,7 +30,7 @@ class Main extends Application {
 	private var model: Mat4;
 	private var projection: Mat4;
 	
-	private var meshes: Array<Mesh> = [];
+	private var scene: Scene3d;
 	private var brick: Texture;
 	private var directionalLight: DirectinalLight;
 	private var pointLights: Array<PointLight>;
@@ -64,14 +67,24 @@ class Main extends Application {
 		GraphicsContext.init(window);
 		gl = GraphicsContext.gl;
 		
-		projection = Mat4Tools.perspective(45, window.width / window.height, 0.1, 100);
+		projection = Mat4Tools.perspective(45, window.width / window.height, 0.1, 10000);
 		
-		createMeshes();
+		
+		brick = new Texture();
+		brick.loadRGBA(Assets.getImage("assets/brick.png"));
+		
+		material = new Material(1, 32);
+		
 		
 		currProgram = new Shader();
 		currProgram.createFromString(getVertexShader(), getFragmentShader(), window.context);
 		
-		camera = new Camera(window, Vec3.fromValues(0, 2, 0), Vec3.fromValues(0, 1, 0), -90, 0);
+		
+		createMeshes();
+		
+		
+		camera = new Camera(window, Vec3.fromValues(0, 1, 3), Vec3.fromValues(0, 1, 0), -90, 0);
+		
 		
 		directionalLight = new DirectinalLight(1, 1, 1, 0.2);
 		directionalLight.direction = Vec3.fromValues(1, -1, -1);
@@ -79,13 +92,13 @@ class Main extends Application {
 		
 		
 		var pointLight1 = new PointLight(0.0, 0.0, 1.0, 0.2);
-		pointLight1.position = Vec3.fromValues(-5.0, 6.0, 0.0);
+		pointLight1.position = Vec3.fromValues(-5.0, 10.0, 0.0);
 		
 		var pointLight2 = new PointLight(0.0, 1.0, 0.0, 0.2);
-		pointLight2.position = Vec3.fromValues(5.0, 6.0, 0.0);
+		pointLight2.position = Vec3.fromValues(5.0, 10.0, 0.0);
 		
 		var pointLight3 = new PointLight(1.0, 1.0, 0.0, 0.2);
-		pointLight3.position = Vec3.fromValues(0.0, -2.0, 0.0);
+		pointLight3.position = Vec3.fromValues(0.0, 3.0, 1.0);
 		
 		pointLights = [pointLight1, pointLight2, pointLight3];
 		
@@ -99,7 +112,7 @@ class Main extends Application {
 		
 		
 		var spotLight1 = new SpotLight(0.0, 0.0, 1.0, 0.2);
-		spotLight1.position = Vec3.fromValues(0.0, 5.0, -8.0);
+		spotLight1.position = Vec3.fromValues(0.0, 10.0, -5.0);
 		spotLight1.direction = Vec3.fromValues(0.0, -1.0, 0.0);
 		spotLight1.edge = 20;
 		
@@ -112,18 +125,14 @@ class Main extends Application {
 			light.linear = 0.045;
 			light.constant = 1;
 		}
-		
-		
-		brick = new Texture();
-		brick.load(Assets.getImage("assets/brick.png"));
-		
-		material = new Material(1, 32);
 	}
 	
 	private function createMeshes(): Void {
 		
+		scene = new Scene3d();
+		
 		// pyramid
-		var indicies: UInt32Array = new UInt32Array([
+		var indicies: UInt16Array = new UInt16Array([
 			0, 1, 3,
 			1, 2, 3,
 			2, 0, 3,
@@ -140,29 +149,50 @@ class Main extends Application {
 		
 		calcAvgNormals(indicies, vertecies, 8, 5);
 		
-		var mesh: Mesh = new Mesh();
-		mesh.createMesh(vertecies, indicies);
-		
-		meshes.push(mesh);
+		var mesh: Mesh = Mesh.createFromRawData(vertecies, indicies);
+		mesh.setShader(currProgram);
+		var model: Node3d = new Node3d();
+		model.setMesh(mesh);
+		model.setPosition(Vec3.fromValues(0.0, 5.0, 0.0));
+		scene.addNode(model);
 		
 		// plane
-		var pIndicies = new UInt32Array([
+		var pIndicies = new UInt16Array([
 			0, 3, 1,
 			1, 3, 2
 		]);
 		
 		var pVertecies = new Float32Array([
 			//	x	y	z		u	v		norm x y z
-			-10.0, -5.0, -10.0,	0.0, 5.0,	0.0, -1.0, 0.0,
-			 10.0, -5.0, -10.0,	5.0, 5.0,	0.0, -1.0, 0.0,
-			 10.0, -5.0, 10.0,	5.0, 0.0,	0.0, -1.0, 0.0,
-			-10.0, -5.0, 10.0,	0.0, 0.0,	0.0, -1.0, 0.0,
+			-10.0, 0.0, -10.0,	0.0, 5.0,	0.0, -1.0, 0.0,
+			 10.0, 0.0, -10.0,	5.0, 5.0,	0.0, -1.0, 0.0,
+			 10.0, 0.0, 10.0,	5.0, 0.0,	0.0, -1.0, 0.0,
+			-10.0, 0.0, 10.0,	0.0, 0.0,	0.0, -1.0, 0.0,
 		]);
 		
-		mesh = new Mesh();
-		mesh.createMesh(pVertecies, pIndicies);
+		mesh = Mesh.createFromRawData(pVertecies, pIndicies);
+		mesh.setShader(currProgram);
+		model = new Node3d();
+		model.setMesh(mesh);
+		scene.addNode(model);
+		// model.visible = false;
 		
-		meshes.push(mesh);
+		var assetPath: String = "assets/glb/Lantern.glb";
+		var lanternData = Assets.getBytes(assetPath);
+		var lanternAsset: AssetData = new AssetData(assetPath, lanternData);
+		model = GLTFParser.getNodeWithName(lanternAsset, "Lantern");
+		model.setMeshShader(currProgram);
+		model.setPosition(Vec3.fromValues(5.0, 0.0, 0.0));
+		scene.addNode(model);
+		
+		assetPath = 'assets/glb/BoxTextured.glb';
+		var boxData = Assets.getBytes(assetPath);
+		var boxAsset: AssetData = new AssetData(assetPath, boxData);
+		model = GLTFParser.getNodeWithName(boxAsset, null);
+		model.setMeshShader(currProgram);
+		model.resetTransform();
+		model.setPosition(Vec3.fromValues(0.0, 1.0, 0.0));
+		scene.addNode(model);
 	}
 	
 	private function getVertexShader(): String {
@@ -175,12 +205,8 @@ class Main extends Application {
 	
 	override public function onWindowClose(): Void {
 		
-		for (mesh in meshes) {
-			mesh.dispose();
-		}
-		
+		scene.dispose();
 		currProgram.dispose();
-		
 		brick.dispose();
 		
 		super.onWindowClose();
@@ -206,9 +232,6 @@ class Main extends Application {
 			return;
 		}
 		
-		model = new Mat4();
-		model.translate(Vec3.fromValues(0, 0, -5), model);
-		
 		gl.viewport(0, 0, window.width, window.height);
 		gl.enable(gl.DEPTH_TEST);
 		
@@ -223,16 +246,14 @@ class Main extends Application {
 		currProgram.usePointLights(pointLights);
 		currProgram.useSpotLights(spotLights);
 		
-		gl.uniformMatrix4fv(currProgram.uniformModel, false, model);
 		gl.uniformMatrix4fv(currProgram.uniformView, false, camera.getViewMatrix());
 		gl.uniformMatrix4fv(currProgram.uniformProjection, false, projection);
 		gl.uniform3fv(currProgram.uniformCameraPosition, camera.position);
 		
-		brick.use();
 		material.useMaterial(currProgram.uniformSpecularIntensity, currProgram.uniformSpecularShininess);
-		for (mesh in meshes) {
-			mesh.renderMesh();
-		}
+		
+		brick.use();
+		scene.draw();
 		brick.unUse();
 		
 		gl.useProgram(null);
@@ -247,7 +268,7 @@ class Main extends Application {
 		}
 	}
 	
-	private function calcAvgNormals(indicies: UInt32Array, vertecies: Float32Array, vLength: Int, normalOffset: Int): Void {
+	private function calcAvgNormals(indicies: UInt16Array, vertecies: Float32Array, vLength: Int, normalOffset: Int): Void {
 		
 		var i: Int = 0;
 		while (i < indicies.length) {
