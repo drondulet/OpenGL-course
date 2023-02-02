@@ -4,6 +4,7 @@ precision mediump float;
 layout (location = 0) in vec3 attPos;
 layout (location = 1) in vec2 attTexCoords;
 layout (location = 2) in vec3 attNormal;
+layout (location = 3) in vec4 attTangent;
 
 out vec4 vertColor;
 out vec2 texCoord;

@@ -9,13 +9,21 @@ import lime.utils.Float32Array;
 import lime.utils.UInt16Array;
 import mme.math.glmatrix.Mat4;
 
+using gltfTools.GLTFBuilder;
+
+
 typedef GlBufferView = {
-	var componentCount: Int;
+	var componentSize: Int;
 	var componentType: Int;
 	var normalized: Bool;
 	var stride: Int;
 	var count: Int;
 	var start: Int;
+}
+
+typedef GlIndexBufferData = {
+	var indices: ArrayBufferView;
+	var componentType: Int;
 }
 
 typedef GlVertexBufferData = {
@@ -26,7 +34,24 @@ typedef GlVertexBufferData = {
 	var tangent: GlBufferView;
 }
 
+typedef GlMeshData = {
+	var indices: GlIndexBufferData;
+	var vertices: GlVertexBufferData;
+}
+
 class Mesh {
+	
+	static public function createFromGLTF(mesh: gltf.types.Mesh): Mesh {
+		
+		var inst: Mesh = new Mesh();
+		inst.name = mesh.name;
+		
+		var data: GlMeshData = mesh.extracMeshData();
+		
+		inst.createFromVertexBufferData(data.vertices, data.indices);
+		
+		return inst;
+	}
 	
 	static public function createFromRawData(vertices: Float32Array, indices: UInt16Array): Mesh {
 		
@@ -101,15 +126,17 @@ class Mesh {
 		gl.bindVertexArray(null);
 	}
 	
-	private function createFromVertexBufferData(vertices: GlVertexBufferData, indices: ArrayBufferView): Void {
+	private function createFromVertexBufferData(vertices: GlVertexBufferData, indices: GlIndexBufferData): Void {
 		
+		indexBufferType = indices.componentType;
+		var indexBufferData: ArrayBufferView = indices.indices;
 		#if js
-		indexCount = untyped indices.length;
+		indexCount = untyped indexBufferData.length;
 		var data = vertices.data.getData();
-		var GlVertexBufferData: Float32Array = new js.lib.Float32Array(data);
+		var vertexBufferData: Float32Array = new js.lib.Float32Array(data);
 		#else
-		indexCount = indices.length;
-		var GlVertexBufferData: Float32Array = new Float32Array(vertices.data);
+		indexCount = indexBufferData.length;
+		var vertexBufferData: Float32Array = new Float32Array(vertices.data);
 		#end
 		
 		meshVAO = gl.createVertexArray();
@@ -117,14 +144,14 @@ class Mesh {
 		
 		indexBuffer = gl.createBuffer();
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexBufferData, gl.STATIC_DRAW);
 		
 		vertexBuffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, GlVertexBufferData, gl.STATIC_DRAW);
+		gl.bufferData(gl.ARRAY_BUFFER, vertexBufferData, gl.STATIC_DRAW);
 		
 		function applyAttributeData(idx: Int, data: GlBufferView): Void {
-			gl.vertexAttribPointer(idx, data.componentCount, data.componentType, data.normalized, data.stride, data.start);
+			gl.vertexAttribPointer(idx, data.componentSize, data.componentType, data.normalized, data.stride, data.start);
 		}
 		
 		attributesIndices = []; //TODO: get attribute pos from shader

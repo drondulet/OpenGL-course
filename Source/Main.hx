@@ -1,5 +1,6 @@
 package;
 
+import gltfTools.GLTFParser;
 import lime.app.Application;
 import lime.graphics.RenderContext;
 import lime.graphics.WebGL2RenderContext;
@@ -171,6 +172,24 @@ class Main extends Application {
 		model.setMesh(mesh);
 		scene.addNode(model);
 		// model.visible = false;
+		
+		var assetPath: String = "assets/glb/Lantern.glb";
+		var lanternData = Assets.getBytes(assetPath);
+		var lanternAsset: AssetData = new AssetData(assetPath, lanternData);
+		model = GLTFParser.getNodeWithName(lanternAsset, "Lantern");
+		model.setMeshShader(currProgram);
+		model.setPosition(Vec3.fromValues(5.0, 0.0, 0.0));
+		scene.addNode(model);
+		
+		assetPath = 'assets/glb/BoxTextured.glb';
+		var boxData = Assets.getBytes(assetPath);
+		var boxAsset: AssetData = new AssetData(assetPath, boxData);
+		model = GLTFParser.getNodeWithName(boxAsset, null);
+		model.setMeshShader(currProgram);
+		model.resetTransform();
+		model.setPosition(Vec3.fromValues(0.0, 1.0, 0.0));
+		model.setScale(2);
+		scene.addNode(model);
 	}
 	
 	private function getVertexShader(): String {

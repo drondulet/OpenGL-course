@@ -1,5 +1,6 @@
 package scene;
 
+import gltf.types.Node;
 import mme.math.glmatrix.Mat4;
 import mme.math.glmatrix.Vec3;
 
@@ -10,6 +11,22 @@ using mme.math.glmatrix.Mat4Tools;
 
 @:allow(scene.Scene3d)
 class Node3d {
+	
+	static public function createFromGLTF(node: Node): Node3d {
+		
+		var inst: Node3d = new Node3d(Mat4.fromArray(node.matrix.toArray()));
+		
+		if (node.mesh != null) {
+			inst.setMesh(node.mesh.createFromGLTF());
+		}
+		
+		for (child in node.children) {
+			inst.addChild(Node3d.createFromGLTF(child));
+		}
+		
+		return inst;
+	}
+	
 	
 	public var parent(default, null): Null<Node3d>;
 	public var name(default, null): Null<String>;
