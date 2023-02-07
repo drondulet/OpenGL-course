@@ -1,5 +1,6 @@
 package;
 
+import gltf.types.MeshPrimitive;
 import haxe.io.Bytes;
 import lime.graphics.WebGL2RenderContext;
 import lime.graphics.opengl.GLBuffer;
@@ -41,27 +42,32 @@ typedef GlMeshData = {
 
 class Mesh {
 	
-	static public function createFromGLTF(mesh: gltf.types.Mesh): Mesh {
+	static public function createFromGLTFBuilder(mesh: gltf.types.Mesh, builder: GLTFBuilder, primitive: Int = 0): Mesh {
 		
 		var inst: Mesh = new Mesh();
 		inst.name = mesh.name;
 		
-		var data: GlMeshData = mesh.extracMeshData();
+		var primitive: MeshPrimitive = mesh.primitives[primitive];
+		var data: GlMeshData = primitive.extracPrimitiveData();
 		
 		inst.createFromVertexBufferData(data.vertices, data.indices);
+		
+		inst.material = Material.createFromGLTFBuilder(builder.gltf.material.get(primitive.material), builder);
 		
 		return inst;
 	}
 	
-	static public function createFromRawData(vertices: Float32Array, indices: UInt16Array): Mesh {
+	static public function createFromRawData(vertices: Float32Array, indices: UInt16Array, material: Material): Mesh {
 		
 		var inst: Mesh = new Mesh();
 		inst.createMesh(vertices, indices);
+		inst.material = material;
 		
 		return inst;
 	}
 	
 	public var name: Null<String>;
+	public var material(default, null): Material;
 	
 	private var meshVAO: GLVertexArrayObject;
 	private var vertexBuffer: GLBuffer;
@@ -78,6 +84,7 @@ class Mesh {
 		meshVAO = null;
 		vertexBuffer = null;
 		indexBuffer = null;
+		material = null;
 		name = null;
 		indexCount = -1;
 	}
@@ -102,6 +109,12 @@ class Mesh {
 			meshVAO = null;
 		}
 		
+		if (material != null) {
+			
+			material.dispose();
+			material = null;
+		}
+		
 		indexCount = -1;
 	}
 	
@@ -110,6 +123,8 @@ class Mesh {
 	}
 	
 	public function renderMesh(transform: Mat4): Void {
+		
+		material.use(shader.uniformSpecularIntensity, shader.uniformSpecularShininess);
 		
 		gl.uniformMatrix4fv(shader.uniformModel, false, transform);
 		
@@ -124,6 +139,8 @@ class Mesh {
 		
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 		gl.bindVertexArray(null);
+		
+		material.unUse();
 	}
 	
 	private function createFromVertexBufferData(vertices: GlVertexBufferData, indices: GlIndexBufferData): Void {
@@ -132,8 +149,7 @@ class Mesh {
 		var indexBufferData: ArrayBufferView = indices.indices;
 		#if js
 		indexCount = untyped indexBufferData.length;
-		var data = vertices.data.getData();
-		var vertexBufferData: Float32Array = new js.lib.Float32Array(data);
+		var vertexBufferData: Float32Array = new js.lib.Float32Array(vertices.data.getData());
 		#else
 		indexCount = indexBufferData.length;
 		var vertexBufferData: Float32Array = new Float32Array(vertices.data);
@@ -189,21 +205,14 @@ class Mesh {
 		meshVAO = gl.createVertexArray();
 		gl.bindVertexArray(meshVAO);
 		
-		// Создание идекс буфера
 		indexBuffer = gl.createBuffer();
-		// Активация индекс буфера
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-		// Копирование статичных индексов
 		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
 		
-		// Создание вертекс буфера
 		vertexBuffer = gl.createBuffer();
-		// Активация вертекс буфера
 		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-		// Копировение статичных (не изменяемых) точек в буфер
 		gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 		
-		// Определяем 3 точки на координату, без оффсетов и прочих смещений
 		attributesIndices = [0, 1, 2];
 		gl.vertexAttribPointer(0, 3, gl.FLOAT, false, Float32Array.BYTES_PER_ELEMENT * 8, 0);
 		gl.vertexAttribPointer(1, 2, gl.FLOAT, true, Float32Array.BYTES_PER_ELEMENT * 8, Float32Array.BYTES_PER_ELEMENT * 3);

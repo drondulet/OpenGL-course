@@ -1,6 +1,8 @@
 package scene;
 
 import gltf.types.Node;
+import gltfTools.GLTFBuilder;
+import haxe.ds.Vector;
 import mme.math.glmatrix.Mat4;
 import mme.math.glmatrix.Vec3;
 
@@ -12,25 +14,29 @@ using mme.math.glmatrix.Mat4Tools;
 @:allow(scene.Scene3d)
 class Node3d {
 	
-	static public function createFromGLTF(node: Node): Node3d {
+	static public function createFromGLTFBuilder(node: Node, builder: GLTFBuilder): Node3d {
 		
 		var inst: Node3d = new Node3d(Mat4.fromArray(node.matrix.toArray()));
 		
 		if (node.mesh != null) {
-			inst.setMesh(node.mesh.createFromGLTF());
+			
+			var count: Int = node.mesh.primitives.length;
+			inst.meshes = new Vector(count);
+			for (i in 0...count) {
+				inst.meshes[i] = node.mesh.createFromGLTFBuilder(builder, i);
+			}
 		}
 		
 		for (child in node.children) {
-			inst.addChild(Node3d.createFromGLTF(child));
+			inst.addChild(Node3d.createFromGLTFBuilder(child, builder));
 		}
 		
 		return inst;
 	}
 	
-	
 	public var parent(default, null): Null<Node3d>;
 	public var name(default, null): Null<String>;
-	public var mesh(default, null): Null<Mesh>;
+	public var meshes(default, null): Vector<Mesh>;
 	public var visible: Bool;
 	
 	private var children: Array<Node3d>;
@@ -49,6 +55,12 @@ class Node3d {
 		for (child in children) {
 			child.dispose();
 		}
+		
+		if (meshes != null) {
+			for (mesh in meshes) {
+				mesh.dispose();
+			}
+		}
 	}
 	
 	public function addChild(child: Node3d): Void {
@@ -63,14 +75,31 @@ class Node3d {
 		children.remove(child);
 	}
 	
-	public function setMesh(mesh: Mesh): Void {
-		this.mesh = mesh;
+	public function setMesh(mesh: Mesh, disposeOld: Bool = true): Void {
+		setMeshes([mesh], disposeOld);
+	}
+	
+	public function setMeshes(newMeshes: Array<Mesh>, disposeOld: Bool = true): Void {
+		
+		if (disposeOld && meshes != null) {
+			for (mesh in meshes) {
+				mesh.dispose();
+			}
+		}
+		
+		meshes = new Vector(newMeshes.length);
+		for (i in 0...newMeshes.length) {
+			meshes[i] = newMeshes[i];
+		}
 	}
 	
 	public function setMeshShader(shader: Shader, toChildMesh: Bool = true): Void {
 		
-		if (mesh != null) {
-			mesh.setShader(shader);
+		if (meshes != null) {
+			
+			for (mesh in meshes) {
+				mesh.setShader(shader);
+			}
 		}
 		
 		if (toChildMesh) {
@@ -110,12 +139,16 @@ class Node3d {
 	
 	private function draw(): Void {
 		
-		if (mesh != null) {
-			if (parent == null) {
-				mesh.renderMesh(transform);
-			}
-			else {
-				mesh.renderMesh(parent.transform.multiply(transform));
+		if (meshes != null) {
+			
+			for (mesh in meshes) {
+				
+				if (parent == null) {
+					mesh.renderMesh(transform);
+				}
+				else {
+					mesh.renderMesh(parent.transform.multiply(transform)); // TODO: make it right way
+				}
 			}
 		}
 		

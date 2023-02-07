@@ -9,8 +9,10 @@
 	<source path="Source" />
 	
 	<!-- <haxedef name="no_inline" /> -->
+	<haxedef name="verbose" />
 	
 	<haxelib name="lime"/>
+	<haxelib name="hxcpp-debug-server" if="cpp debug"/>
 	<haxelib name="haxe-gl-matrix"/>
 	<haxelib name="gltf" version="2.1.0"/>
 	

@@ -5,10 +5,17 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "HXCPP DBG",
+			"type": "hxcpp",
+			"request": "launch",
+			// "program": "${workspaceFolder}/Export/windows/obj/ApplicationMain-debug.exe"
+			"program": "${workspaceFolder}/Export/windows/bin/main.exe"
+		},
+		{
 			"name": "HashLink DBG",
 			"request": "launch",
 			"type": "hl",
-			"hxml": "${workspaceFolder}/Export/hl/haxe/debug.hxml",
+			// "hxml": "${workspaceFolder}/Export/hl/haxe/debug.hxml",
 			"cwd": "${workspaceFolder}/Export/hl/bin",
 			"program": "${workspaceFolder}/Export/hl/obj/ApplicationMain.hl",
 			// "profileSamples": 10000

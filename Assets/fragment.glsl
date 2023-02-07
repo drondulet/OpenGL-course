@@ -1,5 +1,5 @@
 #version 300 es
-precision mediump float;
+precision highp float;
 
 in vec4 vertColor;
 in vec2 texCoord;
@@ -48,7 +48,9 @@ uniform DirectionalLight directionalLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform SpotLight spotLights[MAX_SPOT_LIGHTS];
 
-uniform sampler2D theTexture;
+uniform sampler2D diffuseTexture;
+uniform sampler2D normalTexture;
+
 uniform Material material;
 
 uniform vec3 camPosition;
@@ -135,9 +137,30 @@ vec4 CalcSpotLights() {
 	return result;
 }
 
+vec4 LinearDepth() {
+	
+	float near = 0.1;
+	float far = 100.0;
+	
+	float z = gl_FragCoord.z * 2.0 - 1.0;
+	float linDepth = (2.0 * near * far) / (far + near - z * (far - near));
+	
+	float depth = linDepth / far;
+	return vec4(vec3(depth), 1.0);
+}
+
 void main() {
 	
 	vec4 finalColor = calcDirectionalLight() + calcPointLights() + CalcSpotLights();
-	color = texture(theTexture, texCoord) * finalColor;
+	// if (texture(normalTexture, texCoord).x != 0.0) {
+	// 	color = texture(normalTexture, texCoord) * finalColor;
+	// }
+	// else {
+	// 	color = texture(diffuseTexture, texCoord) * finalColor;
+	// }
+	
+	color = texture(diffuseTexture, texCoord) * finalColor;
+	
+	// color = LinearDepth();
 	// color = vec4(0.75, 0.75, 0.75, 1.0) * finalColor;
 }

@@ -1,35 +1,29 @@
 package gltfTools;
 
 import Mesh;
-import gltf.schema.TComponentType;
+import gltf.GLTF;
+import gltf.schema.TGLTF;
 import gltf.types.Accessor;
 import gltf.types.BufferView;
+import gltf.types.Material;
 import gltf.types.MeshPrimitive;
 import haxe.ds.Vector;
 import haxe.io.Bytes;
 import haxe.io.BytesBuffer;
+import haxe.io.Path;
+import lime.graphics.Image;
 import lime.utils.ArrayBufferView;
-import lime.utils.Float32Array;
-import lime.utils.Int16Array;
-import lime.utils.Int8Array;
+import lime.utils.Assets;
 import lime.utils.Log;
-import lime.utils.UInt16Array;
-import lime.utils.UInt32Array;
-import lime.utils.UInt8Array;
+import scene.Node3d;
 
 using gltfTools.GLTFBuilder;
-using gltfTools.GLTFParser;
+using gltfTools.GLTFHelper;
 
 
 class GLTFBuilder {
 	
-	static public function extracMeshData(mesh: gltf.types.Mesh): GlMeshData {
-		
-		if (mesh.primitives.length > 1) {
-			Log.warn('Multiple primitives, only first is processing.');
-		}
-		
-		var primitive: MeshPrimitive = mesh.primitives[0];
+	static public function extracPrimitiveData(primitive: MeshPrimitive): GlMeshData {
 		
 		var indexType: Int = primitive.indices.componentType;
 		var indicesBytes: ArrayBufferView = extractIndices(primitive.indices);
@@ -42,14 +36,19 @@ class GLTFBuilder {
 	
 	static private function extractIndices(indices: Accessor): ArrayBufferView {
 		
-		var bytes: Bytes = extractBytesFromBufferView(indices.bufferView);
+		var count: Int = indices.count * indices.componentType.getByteSize();
+		var bytes: Bytes = extractBytesFromBufferView(indices.bufferView, count, indices.byteOffset);
 		return bytes.toTypedArray(indices.componentType);
 	}
 	
-	static private function extractBytesFromBufferView(bufferView: BufferView): Bytes {
+	static private function extractBytesFromBufferView(bufferView: BufferView, size: Int = 0, offset: Int = 0): Bytes {
 		
-		var result: Bytes = Bytes.alloc(bufferView.byteLength);
-		result.blit(0, bufferView.buffer.data, bufferView.byteOffset, bufferView.byteLength);
+		if (bufferView.byteStride != 0) {
+			throw 'Unsupported "bufferView.stride" property';
+		}
+		var dataSize: Int = size == 0 ? bufferView.byteLength : size;
+		var result: Bytes = Bytes.alloc(dataSize);
+		result.blit(0, bufferView.buffer.data, offset + bufferView.byteOffset, dataSize);
 		
 		return result;
 	}
@@ -109,7 +108,8 @@ class GLTFBuilder {
 		}
 		
 		var bytes: Bytes = Bytes.alloc(byteBuffer.length);
-		bytes.blit(0, byteBuffer.getBytes(), 0, byteBuffer.length); // need to cut spare buffer bytes
+		var length: Int = byteBuffer.length; // after getBytes() buffer will die on static target
+		bytes.blit(0, byteBuffer.getBytes(), 0, length); // need to cut spare buffer bytes
 		
 		return {
 			data: bytes,
@@ -120,33 +120,106 @@ class GLTFBuilder {
 		};
 	}
 	
-	static private function toTypedArray(bytes: Bytes, componentType: TComponentType): ArrayBufferView {
+	
+	static public function getFromFile(path: String, ?binPath: String, ?texturesPath: String): GLTFBuilder {
 		
-		var result: ArrayBufferView;
+		var inst: GLTFBuilder = new GLTFBuilder();
 		
-		#if js
-		var data = bytes.getData();
-		result = 
-			switch (componentType) {
-				case BYTE: new Int8Array(data);
-				case SHORT: new Int16Array(data);
-				case FLOAT: new Float32Array(data);
-				case UNSIGNED_BYTE: new UInt8Array(data);
-				case UNSIGNED_SHORT: new UInt16Array(data);
-				case UNSIGNED_INT: new UInt32Array(data);
+		inst.isGlb = Path.extension(path) == "glb";
+		inst.texturePath = texturesPath != null ? texturesPath : Path.directory(path);
+		
+		if (inst.isGlb) {
+			
+			var rawGlb: Bytes = Assets.getBytes(path);
+			inst.gltf = GLTF.parseAndLoadGLB(rawGlb);
+		}
+		else {
+			
+			var rawJson: String = Assets.getText(path);
+			var json: TGLTF = GLTF.parse(rawJson);
+			var bufferPath: String = binPath != null ? binPath : Path.directory(path);
+			var binBuffers: Array<Bytes> = [];
+			for (buffer in json.buffers) {
+				binBuffers.push(Assets.getBytes('${bufferPath}/${buffer.uri}'));
 			}
-		#else
-		result = 
-			switch (componentType) {
-				case BYTE: new Int8Array(bytes);
-				case SHORT: new Int16Array(bytes);
-				case FLOAT: new Float32Array(bytes);
-				case UNSIGNED_BYTE: new UInt8Array(bytes);
-				case UNSIGNED_SHORT: new UInt16Array(bytes);
-				case UNSIGNED_INT: new UInt32Array(bytes);
+			inst.gltf = GLTF.parseAndLoad(rawJson, binBuffers);
+		}
+		
+		inst.loadTextures();
+		
+		return inst;
+	}
+	
+	
+	public var isGlb(default, null): Bool;
+	public var gltf(default, null): GLTF;
+	public var textures(default, null): Vector<Image>;
+	
+	private var texturePath: String;
+	
+	private function new() {
+		
+	}
+	
+	public function dispose(): Void {
+		
+	}
+	
+	public function getNodeWithName(name: String): Null<Node3d> {
+		
+		var node: Null<Node3d> = null;
+		
+		for (scene in gltf.scenes) {
+			
+			for (gltfNode in scene.nodes) {
+				
+				if (gltfNode.name == name) {
+					node = Node3d.createFromGLTFBuilder(gltfNode, this);
+				}
 			}
-		#end
+		}
+		
+		if (node == null) {
+			Log.warn('Node with name "${name}" not found in GLTF');
+		}
+		
+		return node;
+	}
+	
+	public function getDiffuseTexture(mat: Material): Null<Image> {
+		
+		var result: Null<Image> = null;
+		
+		if (mat.pbrMetallicRoughness != null && mat.pbrMetallicRoughness.baseColorTexture != null) {
+			result = textures[mat.pbrMetallicRoughness.baseColorTexture.index];
+		}
 		
 		return result;
+	}
+	
+	public function getNormalTexture(mat: Material): Null<Image> {
+		
+		var result: Null<Image> = null;
+		
+		if (mat.normalTexture != null) {
+			result = textures[mat.normalTexture.index];
+		}
+		
+		return result;
+	}
+	
+	private function loadTextures(): Void {
+		
+		textures = new Vector(gltf.images.length);
+		
+		for (i in 0 ... gltf.images.length) {
+			
+			if (isGlb) {
+				Image.loadFromBytes(extractBytesFromBufferView(gltf.images[i].bufferView)).onComplete(image -> textures[i] = image);
+			}
+			else {
+				textures[i] = Assets.getImage('${texturePath}/${gltf.images[i].uri}');
+			}
+		}
 	}
 }

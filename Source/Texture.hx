@@ -4,14 +4,20 @@ import lime.graphics.Image;
 import lime.graphics.WebGL2RenderContext;
 import lime.graphics.opengl.GLTexture;
 
+enum ETextureType {
+	diffuse;
+	normal;
+}
+
 class Texture {
 	
 	private var texture: GLTexture;
+	private var type: ETextureType;
 	
 	private var gl(get, never): WebGL2RenderContext;
 	
-	public function new() {
-		
+	public function new(type: ETextureType) {
+		this.type = type;
 	}
 	
 	public function loadRGBA(image: Image): Void {
@@ -24,11 +30,23 @@ class Texture {
 	
 	public function use(): Void {
 		
-		gl.activeTexture(gl.TEXTURE0);
+		var target: Int = 
+			switch (type) {
+				case diffuse: gl.TEXTURE0;
+				case normal: gl.TEXTURE1;
+			}
+		gl.activeTexture(target);
 		gl.bindTexture(gl.TEXTURE_2D, texture);
 	}
 	
 	public function unUse(): Void {
+		
+		var target: Int = 
+			switch (type) {
+				case diffuse: gl.TEXTURE0;
+				case normal: gl.TEXTURE1;
+			}
+		gl.activeTexture(target);
 		gl.bindTexture(gl.TEXTURE_2D, null);
 	}
 	

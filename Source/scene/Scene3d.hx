@@ -11,9 +11,9 @@ class Scene3d {
 		var inst: Scene3d = new Scene3d();
 		inst.name = scene.name;
 		
-		for (node in scene.nodes) {
-			inst.addNode(node.createFromGLTF());
-		}
+		// for (node in scene.nodes) {
+		// 	inst.addNode(node.createFromGLTF());
+		// }
 		
 		return inst;
 	}

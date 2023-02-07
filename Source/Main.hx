@@ -1,6 +1,7 @@
 package;
 
-import gltfTools.GLTFParser;
+import Texture.ETextureType;
+import gltfTools.GLTFBuilder;
 import lime.app.Application;
 import lime.graphics.RenderContext;
 import lime.graphics.WebGL2RenderContext;
@@ -27,11 +28,9 @@ class Main extends Application {
 	private var projection: Mat4;
 	
 	private var scene: Scene3d;
-	private var brick: Texture;
 	private var directionalLight: DirectinalLight;
 	private var pointLights: Array<PointLight>;
 	private var spotLights: Array<SpotLight>;
-	private var material: Material;
 	
 	public function new() {
 		super();
@@ -64,12 +63,6 @@ class Main extends Application {
 		gl = GraphicsContext.gl;
 		
 		projection = Mat4Tools.perspective(45, window.width / window.height, 0.1, 10000);
-		
-		
-		brick = new Texture();
-		brick.loadRGBA(Assets.getImage("assets/brick.png"));
-		
-		material = new Material(1, 32);
 		
 		
 		currProgram = new Shader();
@@ -145,7 +138,13 @@ class Main extends Application {
 		
 		calcAvgNormals(indicies, vertecies, 8, 5);
 		
-		var mesh: Mesh = Mesh.createFromRawData(vertecies, indicies);
+		var brick: Texture = new Texture(ETextureType.diffuse);
+		brick.loadRGBA(Assets.getImage("assets/brick.png"));
+		
+		var material: Material = new Material(1, 32);
+		material.setDiffuseTexture(brick);
+		
+		var mesh: Mesh = Mesh.createFromRawData(vertecies, indicies, material);
 		mesh.setShader(currProgram);
 		var model: Node3d = new Node3d();
 		model.setMesh(mesh);
@@ -166,29 +165,47 @@ class Main extends Application {
 			-10.0, 0.0, 10.0,	0.0, 0.0,	0.0, -1.0, 0.0,
 		]);
 		
-		mesh = Mesh.createFromRawData(pVertecies, pIndicies);
+		mesh = Mesh.createFromRawData(pVertecies, pIndicies, material);
 		mesh.setShader(currProgram);
 		model = new Node3d();
 		model.setMesh(mesh);
 		scene.addNode(model);
 		// model.visible = false;
 		
+		var gltfBuilder: GLTFBuilder;
 		var assetPath: String = "assets/glb/Lantern.glb";
-		var lanternData = Assets.getBytes(assetPath);
-		var lanternAsset: AssetData = new AssetData(assetPath, lanternData);
-		model = GLTFParser.getNodeWithName(lanternAsset, "Lantern");
+		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
+		model = gltfBuilder.getNodeWithName("Lantern");
 		model.setMeshShader(currProgram);
 		model.setPosition(Vec3.fromValues(5.0, 0.0, 0.0));
+		model.setScale(0.5);
 		scene.addNode(model);
 		
 		assetPath = 'assets/glb/BoxTextured.glb';
-		var boxData = Assets.getBytes(assetPath);
-		var boxAsset: AssetData = new AssetData(assetPath, boxData);
-		model = GLTFParser.getNodeWithName(boxAsset, null);
+		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
+		model = gltfBuilder.getNodeWithName(null);
 		model.setMeshShader(currProgram);
 		model.resetTransform();
 		model.setPosition(Vec3.fromValues(0.0, 1.0, 0.0));
 		model.setScale(2);
+		scene.addNode(model);
+		
+		assetPath = "assets/gltf/lantern/Lantern.gltf";
+		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
+		model = gltfBuilder.getNodeWithName("Lantern");
+		model.setMeshShader(currProgram);
+		model.setPosition(Vec3.fromValues(-5.0, 0.0, -5.0));
+		model.setRotation(180, Vec3.fromValues(0.0, 1.0, 0.0));
+		model.setScale(0.5);
+		scene.addNode(model);
+		
+		assetPath = 'assets/gltf/sponza/Sponza.gltf';
+		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
+		model = gltfBuilder.getNodeWithName(null);
+		model.setMeshShader(currProgram);
+		model.resetTransform();
+		model.setPosition(Vec3.fromValues(0.0, 0.0, -30.0));
+		model.setScale(0.02);
 		scene.addNode(model);
 	}
 	
@@ -204,7 +221,6 @@ class Main extends Application {
 		
 		scene.dispose();
 		currProgram.dispose();
-		brick.dispose();
 		
 		super.onWindowClose();
 	}
@@ -247,11 +263,7 @@ class Main extends Application {
 		gl.uniformMatrix4fv(currProgram.uniformProjection, false, projection);
 		gl.uniform3fv(currProgram.uniformCameraPosition, camera.position);
 		
-		material.useMaterial(currProgram.uniformSpecularIntensity, currProgram.uniformSpecularShininess);
-		
-		brick.use();
 		scene.draw();
-		brick.unUse();
 		
 		gl.useProgram(null);
 		
