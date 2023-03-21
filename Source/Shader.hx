@@ -35,6 +35,11 @@ typedef SpotLightUniforms = {
 	var edge: Null<GLUniformLocation>;
 }
 
+typedef TextureUniforms = {
+	var diffuse: Null<GLUniformLocation>;
+	var normal: Null<GLUniformLocation>;
+}
+
 class Shader {
 	
 	static final MAX_POINT_LIGHTS: Int = 3;
@@ -47,6 +52,11 @@ class Shader {
 	public var uniformSpecularIntensity(default, null): Null<GLUniformLocation>;
 	public var uniformSpecularShininess(default, null): Null<GLUniformLocation>;
 	public var uniformCameraPosition(default, null): Null<GLUniformLocation>;
+	
+	public var vertexLightDir(default, null): Null<GLUniformLocation>;
+	public var vertexViewPos(default, null): Null<GLUniformLocation>;
+	
+	public var textureUniformLoc(default, null): TextureUniforms;
 	
 	private var directLightUniformLoc: DirectionalLightUniforms;
 	private var pointLightsUniformLoc: Array<PointLightUniforms>;
@@ -89,6 +99,9 @@ class Shader {
 		uniformModel = gl.getUniformLocation(program, "model");
 		uniformView = gl.getUniformLocation(program, "view");
 		uniformProjection = gl.getUniformLocation(program, "projection");
+		
+		vertexLightDir = gl.getUniformLocation(program, "lightDir");
+		vertexViewPos = gl.getUniformLocation(program, "viewPos");
 		
 		directLightUniformLoc = {
 			color: gl.getUniformLocation(program, "directionalLight.base.color"),
@@ -134,6 +147,11 @@ class Shader {
 		uniformSpecularIntensity = gl.getUniformLocation(program, "material.specularIntensity");
 		uniformSpecularShininess = gl.getUniformLocation(program, "material.shininess");
 		
+		textureUniformLoc = {
+			diffuse: gl.getUniformLocation(program, "diffuseTexture"),
+			normal: gl.getUniformLocation(program, "normalTexture"),
+		}
+		
 		uniformCameraPosition = gl.getUniformLocation(program, "camPosition");
 	}
 	
@@ -144,6 +162,10 @@ class Shader {
 		}
 		
 		gl.useProgram(program);
+	}
+	
+	public function unUse(): Void {
+		gl.useProgram(null);
 	}
 	
 	public function dispose(): Void {
@@ -164,11 +186,7 @@ class Shader {
 	}
 	
 	public function useDirectionalLight(light: DirectinalLight): Void {
-		
-		light.use(directLightUniformLoc.ambientIntensity,
-			directLightUniformLoc.color,
-			directLightUniformLoc.diffuseIntensity,
-			directLightUniformLoc.direction);
+		light.use(directLightUniformLoc, vertexLightDir);
 	}
 	
 	public function usePointLights(lights: Array<PointLight>): Void {

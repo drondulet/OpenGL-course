@@ -14,22 +14,42 @@ typedef MaterialTextures = {
 
 class Material {
 	
+	static private final textureCache: Map<Image, Texture> = [];
+	
 	static public function createFromGLTFBuilder(mat: gltf.types.Material, builder: GLTFBuilder): Material {
 		
-		var inst: Material = new Material(1, 1);
+		var inst: Material = new Material(1, 256);
 		
 		var diffuse: Null<Image> = builder.getDiffuseTexture(mat);
+		
 		if (diffuse != null) {
 			
-			inst.diffuse = new Texture(ETextureType.diffuse);
-			inst.diffuse.loadRGBA(diffuse);
+			if (textureCache.exists(diffuse)) {
+				inst.diffuse = textureCache[diffuse];
+			}
+			else {
+				
+				inst.diffuse = new Texture(ETextureType.diffuse);
+				inst.diffuse.loadRGBA(diffuse);
+				textureCache[diffuse] = inst.diffuse;
+			}
 		}
 		
 		var normal: Null<Image> = builder.getNormalTexture(mat);
 		if (normal != null) {
 			
-			inst.normal = new Texture(ETextureType.normal);
-			inst.normal.loadRGBA(normal);
+			if (textureCache.exists(normal)) {
+				inst.normal = textureCache[normal];
+			}
+			else {
+				
+				inst.normal = new Texture(ETextureType.normal);
+				inst.normal.loadRGBA(normal);
+				textureCache[normal] = inst.normal;
+			}
+		}
+		else {
+			inst.setNormalTexture(Texture.defaultNormalMap);
 		}
 		
 		return inst;

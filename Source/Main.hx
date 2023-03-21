@@ -68,16 +68,20 @@ class Main extends Application {
 		currProgram = new Shader();
 		currProgram.createFromString(getVertexShader(), getFragmentShader(), window.context);
 		
+		currProgram.use();
+		gl.uniform1i(currProgram.textureUniformLoc.diffuse, 0);
+		gl.uniform1i(currProgram.textureUniformLoc.normal, 1);
+		currProgram.unUse();
 		
 		createMeshes();
 		
 		
-		camera = new Camera(window, Vec3.fromValues(0, 1, 3), Vec3.fromValues(0, 1, 0), -90, 0);
+		camera = new Camera(window, Vec3.fromValues(0, 1, 7), Vec3.fromValues(0, 1, 0), -90, 0);
 		
 		
-		directionalLight = new DirectinalLight(1, 1, 1, 0.2);
+		directionalLight = new DirectinalLight(1, 1, 1, 0.1);
 		directionalLight.direction = Vec3.fromValues(1, -1, -1);
-		directionalLight.diffuseIntensity = 0.1;
+		directionalLight.diffuseIntensity = 0.9;
 		
 		
 		var pointLight1 = new PointLight(0.0, 0.0, 1.0, 0.2);
@@ -89,7 +93,8 @@ class Main extends Application {
 		var pointLight3 = new PointLight(1.0, 1.0, 0.0, 0.2);
 		pointLight3.position = Vec3.fromValues(0.0, 3.0, 1.0);
 		
-		pointLights = [pointLight1, pointLight2, pointLight3];
+		// pointLights = [pointLight1, pointLight2, pointLight3];
+		pointLights = [];
 		
 		for (light in pointLights) {
 			
@@ -120,36 +125,18 @@ class Main extends Application {
 		
 		scene = new Scene3d();
 		
-		// pyramid
-		var indicies: UInt16Array = new UInt16Array([
-			0, 1, 3,
-			1, 2, 3,
-			2, 0, 3,
-			0, 2, 1
-		]);
-		
-		var vertecies: Float32Array = new Float32Array([
-			//	x	y	z		u	v		norm x y z
-			-1.0, -1.0,  0.0,	0.0, 0.0,	0.0, 0.0, 0.0,
-			 0.0, -0.5,  1.0,	0.0, 1.0,	0.0, 0.0, 0.0,
-			 1.0, -1.0,  0.0,	1.0, 0.0,	0.0, 0.0, 0.0,
-			 0.0,  1.0,  0.0,	0.5, 1.0,	0.0, 0.0, 0.0
-		]);
-		
-		calcAvgNormals(indicies, vertecies, 8, 5);
-		
 		var brick: Texture = new Texture(ETextureType.diffuse);
-		brick.loadRGBA(Assets.getImage("assets/brick.png"));
+		brick.loadRGBA(Assets.getImage("assets/C01 008 Brick Wall 2048x2048.jpg"));
+		
+		var brickNormal: Texture = new Texture(ETextureType.normal);
+		brickNormal.loadRGBA(Assets.getImage("assets/C01 008 Brick Wall 2048x2048 Normal Map.jpg"));
 		
 		var material: Material = new Material(1, 32);
 		material.setDiffuseTexture(brick);
+		material.setNormalTexture(brickNormal);
 		
-		var mesh: Mesh = Mesh.createFromRawData(vertecies, indicies, material);
-		mesh.setShader(currProgram);
-		var model: Node3d = new Node3d();
-		model.setMesh(mesh);
-		model.setPosition(Vec3.fromValues(0.0, 5.0, 0.0));
-		scene.addNode(model);
+		var mesh: Mesh;
+		var model: Node3d;
 		
 		// plane
 		var pIndicies = new UInt16Array([
@@ -184,6 +171,7 @@ class Main extends Application {
 		assetPath = 'assets/glb/BoxTextured.glb';
 		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
 		model = gltfBuilder.getNodeWithName(null);
+		model.getChildAt(0).meshes[0].material.setNormalTexture(Texture.defaultNormalMap);
 		model.setMeshShader(currProgram);
 		model.resetTransform();
 		model.setPosition(Vec3.fromValues(0.0, 1.0, 0.0));
@@ -199,14 +187,24 @@ class Main extends Application {
 		model.setScale(0.5);
 		scene.addNode(model);
 		
-		assetPath = 'assets/gltf/sponza/Sponza.gltf';
-		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
-		model = gltfBuilder.getNodeWithName(null);
-		model.setMeshShader(currProgram);
-		model.resetTransform();
-		model.setPosition(Vec3.fromValues(0.0, 0.0, -30.0));
-		model.setScale(0.02);
-		scene.addNode(model);
+		// assetPath = 'assets/gltf/sponza/Sponza.gltf';
+		// gltfBuilder = GLTFBuilder.getFromFile(assetPath);
+		// model = gltfBuilder.getNodeWithName(null);
+		// model.setMeshShader(currProgram);
+		// model.resetTransform();
+		// model.setPosition(Vec3.fromValues(0.0, 0.0, -30.0));
+		// model.setScale(0.02);
+		// scene.addNode(model);
+		
+		// assetPath = "assets/gltf/postwar_city/scene.gltf";
+		// gltfBuilder = GLTFBuilder.getFromFile(assetPath);
+		// model = gltfBuilder.getNodeWithName("Sketchfab_model");
+		// model.resetTransform();
+		// model.setMeshShader(currProgram);
+		// model.setPosition(Vec3.fromValues(0.0, 5.0, 0.0));
+		// model.setRotation(-90, Vec3.fromValues(1.0, 0.0, 0.0));
+		// model.setScale(10);
+		// scene.addNode(model);
 	}
 	
 	private function getVertexShader(): String {
@@ -259,13 +257,15 @@ class Main extends Application {
 		currProgram.usePointLights(pointLights);
 		currProgram.useSpotLights(spotLights);
 		
+		// calculate MVP and put it to shader
 		gl.uniformMatrix4fv(currProgram.uniformView, false, camera.getViewMatrix());
 		gl.uniformMatrix4fv(currProgram.uniformProjection, false, projection);
 		gl.uniform3fv(currProgram.uniformCameraPosition, camera.position);
+		gl.uniform3fv(currProgram.vertexViewPos, camera.position);
 		
 		scene.draw();
 		
-		gl.useProgram(null);
+		currProgram.unUse();
 		
 		gl.disable(gl.DEPTH_TEST);
 	}

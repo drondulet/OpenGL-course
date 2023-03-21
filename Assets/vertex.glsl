@@ -10,16 +10,36 @@ out vec4 vertColor;
 out vec2 texCoord;
 out vec3 normal;
 out vec3 fragPos;
+out vec3 tangentLightDir;
+out vec3 tangentViewPos;
+out vec3 tangentFragPos;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform vec3 lightDir;
+uniform vec3 viewPos;
 
 void main()
 {
 	vec4 pos4 = vec4(attPos, 1.0f);
 	gl_Position = projection * view * model * pos4;
 	texCoord = attTexCoords;
-	normal = mat3(transpose(inverse(model))) * attNormal;
+	normal = mat3(transpose(inverse(model))) * attNormal; // scale independent normal
 	fragPos = (model * pos4).xyz;
+	
+	vec3 tangent = attTangent.xyz;
+	vec3 T = normalize(vec3(model * vec4(tangent, 0.0)));
+	vec3 N = normalize(normal);
+	T = normalize(T - dot(T, N) * N); // Gram – Schmidt process
+	vec3 B = cross(N, T);
+	
+	
+	mat3 TBN = transpose(mat3(T, B, N));
+	tangentLightDir = TBN * -lightDir;
+	// tangentLightDir.x = dot(-lightDir, T);
+	// tangentLightDir.y = dot(-lightDir, B);
+	// tangentLightDir.z = dot(-lightDir, N);
+	tangentViewPos = TBN * viewPos;
+	tangentFragPos = TBN * fragPos;
 }

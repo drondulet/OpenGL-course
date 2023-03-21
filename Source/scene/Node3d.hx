@@ -75,6 +75,10 @@ class Node3d {
 		children.remove(child);
 	}
 	
+	public function getChildAt(index: Int): Null<Node3d> {
+		return index > -1 && index < children.length ? children[index] : null;
+	}
+	
 	public function setMesh(mesh: Mesh, disposeOld: Bool = true): Void {
 		setMeshes([mesh], disposeOld);
 	}
@@ -142,13 +146,7 @@ class Node3d {
 		if (meshes != null) {
 			
 			for (mesh in meshes) {
-				
-				if (parent == null) {
-					mesh.renderMesh(transform);
-				}
-				else {
-					mesh.renderMesh(parent.transform.multiply(transform)); // TODO: make it right way
-				}
+				mesh.renderMesh(getWorldTransform(transform));
 			}
 		}
 		
@@ -157,5 +155,19 @@ class Node3d {
 				child.draw();
 			}
 		}
+	}
+	
+	private function getWorldTransform(transform: Mat4): Mat4 {
+		
+		var result: Mat4;
+		
+		if (parent != null) {
+			result = parent.getWorldTransform(parent.transform.multiply(transform));
+		}
+		else {
+			result = transform;
+		}
+		
+		return result;
 	}
 }

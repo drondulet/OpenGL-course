@@ -193,6 +193,18 @@ class GLTFBuilder {
 		if (mat.pbrMetallicRoughness != null && mat.pbrMetallicRoughness.baseColorTexture != null) {
 			result = textures[mat.pbrMetallicRoughness.baseColorTexture.index];
 		}
+		else if (mat.extensions != null) {
+			
+			for (extensionFiled in Reflect.fields(mat.extensions)) {
+				
+				var extension: Dynamic = Reflect.field(mat.extensions, extensionFiled);
+				if (Reflect.hasField(extension, "diffuseTexture")) {
+					
+					var idx: Int = Std.int(Reflect.field(Reflect.field(extension, "diffuseTexture"), "index"));
+					result = textures[idx];
+				}
+			}
+		}
 		
 		return result;
 	}

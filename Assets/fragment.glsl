@@ -5,6 +5,9 @@ in vec4 vertColor;
 in vec2 texCoord;
 in vec3 normal;
 in vec3 fragPos;
+in vec3 tangentLightDir;
+in vec3 tangentViewPos;
+in vec3 tangentFragPos;
 
 out vec4 color;
 
@@ -69,7 +72,37 @@ vec4 calcLightByDirection(Light light, vec3 direction) {
 	if (diffFactor > 0.0f) {
 		
 		vec3 fragToCam = normalize(camPosition - fragPos);
-		vec3 reflectedVertex = normalize(reflect(direction, normalizedNormal));
+		vec3 reflectedVertex = normalize(reflect(-direction, normalizedNormal));
+		
+		float specularFactor = dot(fragToCam, reflectedVertex);
+		
+		if (specularFactor > 0.0f) {
+			
+			specularFactor = pow(specularFactor, material.shininess);
+			specularColor = vec4(light.color * material.specularIntensity * specularFactor, 1.0f);
+		}
+	}
+	
+	return ambientColor + diffColor + specularColor;
+}
+
+vec4 calcDirectionalLightInTangentSpace(Light light) {
+	
+	vec3 normalMap = texture(normalTexture, texCoord).rgb;
+	vec3 normal = normalMap * 2.0 - 1.0;
+	
+	vec4 ambientColor = vec4(light.color, 1.0f) * light.ambientIntensity;
+	
+	float diffFactor = max(dot(normal, normalize(tangentLightDir)), 0.0f);
+	
+	vec4 diffColor = vec4(light.color, 1.0f) * light.diffIntensity * diffFactor;
+	
+	vec4 specularColor = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+	
+	if (diffFactor > 0.0f) {
+		
+		vec3 fragToCam = normalize(tangentViewPos - tangentFragPos);
+		vec3 reflectedVertex = normalize(reflect(-tangentLightDir, normal));
 		
 		float specularFactor = dot(fragToCam, reflectedVertex);
 		
@@ -84,7 +117,7 @@ vec4 calcLightByDirection(Light light, vec3 direction) {
 }
 
 vec4 calcDirectionalLight() {
-	return calcLightByDirection(directionalLight.base, directionalLight.direction);
+	return calcDirectionalLightInTangentSpace(directionalLight.base);
 }
 
 vec4 CalcPointLight(PointLight light) {
@@ -152,15 +185,7 @@ vec4 LinearDepth() {
 void main() {
 	
 	vec4 finalColor = calcDirectionalLight() + calcPointLights() + CalcSpotLights();
-	// if (texture(normalTexture, texCoord).x != 0.0) {
-	// 	color = texture(normalTexture, texCoord) * finalColor;
-	// }
-	// else {
-	// 	color = texture(diffuseTexture, texCoord) * finalColor;
-	// }
-	
 	color = texture(diffuseTexture, texCoord) * finalColor;
-	
-	// color = LinearDepth();
 	// color = vec4(0.75, 0.75, 0.75, 1.0) * finalColor;
+	// color = LinearDepth();
 }

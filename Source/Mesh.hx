@@ -42,12 +42,12 @@ typedef GlMeshData = {
 
 class Mesh {
 	
-	static public function createFromGLTFBuilder(mesh: gltf.types.Mesh, builder: GLTFBuilder, primitive: Int = 0): Mesh {
+	static public function createFromGLTFBuilder(mesh: gltf.types.Mesh, builder: GLTFBuilder, primitiveIdx: Int = 0): Mesh {
 		
 		var inst: Mesh = new Mesh();
 		inst.name = mesh.name;
 		
-		var primitive: MeshPrimitive = mesh.primitives[primitive];
+		var primitive: MeshPrimitive = mesh.primitives[primitiveIdx];
 		var data: GlMeshData = primitive.extracPrimitiveData();
 		
 		inst.createFromVertexBufferData(data.vertices, data.indices);

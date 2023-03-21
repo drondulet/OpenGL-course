@@ -8,7 +8,10 @@
 	
 	<source path="Source" />
 	
-	<!-- <haxedef name="no_inline" /> -->
+	<!-- <define name="noinline" /> -->
+	<haxeflag name="--no-inline" if="noinline"/>
+	<!-- <haxeflag name="-dce" value="full" /> -->
+
 	<haxedef name="verbose" />
 	
 	<haxelib name="lime"/>

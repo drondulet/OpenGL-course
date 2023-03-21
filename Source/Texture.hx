@@ -1,8 +1,10 @@
 package;
 
 import lime.graphics.Image;
+import lime.graphics.ImageBuffer;
 import lime.graphics.WebGL2RenderContext;
 import lime.graphics.opengl.GLTexture;
+import lime.utils.UInt8Array;
 
 enum ETextureType {
 	diffuse;
@@ -10,6 +12,21 @@ enum ETextureType {
 }
 
 class Texture {
+	
+	static public var defaultNormalMap(get, null): Texture = null;
+	static private function get_defaultNormalMap(): Texture {
+		if (defaultNormalMap == null) {
+			
+			var bitmap: UInt8Array = new UInt8Array([127, 127, 255, 255]);
+			var buffer: ImageBuffer = new ImageBuffer(bitmap, 1, 1);
+			var texture: Image = new Image(buffer);
+			
+			defaultNormalMap = new Texture(ETextureType.normal);
+			defaultNormalMap.loadRGBA(texture);
+		}
+		return defaultNormalMap;
+	}
+	
 	
 	private var texture: GLTexture;
 	private var type: ETextureType;
