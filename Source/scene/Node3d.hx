@@ -97,22 +97,6 @@ class Node3d {
 		}
 	}
 	
-	public function setMeshShader(shader: Shader, toChildMesh: Bool = true): Void {
-		
-		if (meshes != null) {
-			
-			for (mesh in meshes) {
-				mesh.setShader(shader);
-			}
-		}
-		
-		if (toChildMesh) {
-			for (child in children) {
-				child.setMeshShader(shader);
-			}
-		}
-	}
-	
 	public function setPosition(pos: Vec3): Void {
 		transform.translate(pos, transform);
 	}
@@ -141,18 +125,18 @@ class Node3d {
 		transform.identity();
 	}
 	
-	private function draw(): Void {
+	private function draw(shader: Shader): Void {
 		
 		if (meshes != null) {
 			
 			for (mesh in meshes) {
-				mesh.renderMesh(getWorldTransform(transform));
+				mesh.renderMesh(getWorldTransform(transform), shader);
 			}
 		}
 		
 		for (child in children) {
 			if (child.visible) {
-				child.draw();
+				child.draw(shader);
 			}
 		}
 	}

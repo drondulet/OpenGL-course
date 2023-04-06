@@ -75,7 +75,6 @@ class Mesh {
 	private var indexBufferType: Int;
 	private var indexCount: Int;
 	private var attributesIndices: Array<Int>;
-	private var shader: Shader;
 	
 	private var gl(get, never): WebGL2RenderContext;
 	
@@ -118,11 +117,7 @@ class Mesh {
 		indexCount = -1;
 	}
 	
-	public function setShader(shader: Shader): Void {
-		this.shader = shader;
-	}
-	
-	public function renderMesh(transform: Mat4): Void {
+	public function renderMesh(transform: Mat4, shader: Shader): Void {
 		
 		material.use(shader.uniformSpecularIntensity, shader.uniformSpecularShininess);
 		

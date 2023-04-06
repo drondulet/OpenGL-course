@@ -47,11 +47,11 @@ class Scene3d {
 		nodes.remove(node);
 	}
 	
-	public function draw(): Void {
+	public function draw(shader: Shader): Void {
 		
 		for (node in nodes.keys()) {
 			if (node.visible) {
-				node.draw();
+				node.draw(shader);
 			}
 		}
 	}

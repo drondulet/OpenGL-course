@@ -8,6 +8,7 @@ in vec3 fragPos;
 in vec3 tangentLightDir;
 in vec3 tangentViewPos;
 in vec3 tangentFragPos;
+in vec4 dirLightSpacePos;
 
 out vec4 color;
 
@@ -53,12 +54,78 @@ uniform SpotLight spotLights[MAX_SPOT_LIGHTS];
 
 uniform sampler2D diffuseTexture;
 uniform sampler2D normalTexture;
+uniform sampler2D dirShadowMapTexture;
 
 uniform Material material;
 
 uniform vec3 camPosition;
 
-vec4 calcLightByDirection(Light light, vec3 direction) {
+float calcDirShadowFactorPCF(DirectionalLight light) {
+	
+	vec3 projCoords = dirLightSpacePos.xyz / dirLightSpacePos.w;
+	projCoords = (projCoords * 0.5) + 0.5;
+	
+	// clamp to border replacement
+	bool outRange = projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0;
+	
+	float shadow = 0.0;
+	
+	if (!outRange) {
+		
+		vec3 normalizedNormal = normalize(normal);
+		vec3 normalizedLightDir = normalize(light.direction);
+		
+		// float bias = max(0.01 * (1.0 - dot(normalizedNormal, normalizedLightDir)), 0.005);
+		float bias = 0.001;
+		float current = projCoords.z;
+		vec2 texelSize = 1.0 / vec2(textureSize(dirShadowMapTexture, 0));
+		
+		for (int x = -1; x < 2; x++) {
+			for (int y = -1; y < 2; y++) {
+				
+				float pcfDepth = texture(dirShadowMapTexture, projCoords.xy + vec2(x, y) * texelSize).r;
+				shadow += current - bias > pcfDepth ? 1.0 : 0.0;
+			}
+		}
+		
+		shadow /= 9.0;
+		
+		// for (int x = -2; x < 3; x++) {
+		// 	for (int y = -2; y < 3; y++) {
+				
+		// 		float pcfDepth = texture(dirShadowMapTexture, projCoords.xy + vec2(x, y) * texelSize).r;
+		// 		shadow += current - bias > pcfDepth ? 1.0 : 0.0;
+		// 	}
+		// }
+		
+		// shadow /= 25.0;
+	}
+	
+	return shadow;
+}
+
+float calcDirShadowFactor(DirectionalLight light) {
+	
+	vec3 projCoords = dirLightSpacePos.xyz / dirLightSpacePos.w;
+	projCoords = (projCoords * 0.5) + 0.5;
+	
+	// clamp to border replacement
+	bool outRange = projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0;
+	
+	vec3 normalizedNormal = normalize(normal);
+	vec3 normalizedLightDir = normalize(light.direction);
+	
+	float bias = max(0.05 * (1.0 - dot(normalizedNormal, normalizedLightDir)), 0.005);
+	
+	float closest = texture(dirShadowMapTexture, projCoords.xy).r;
+	float current = projCoords.z;
+	
+	float shadow = !outRange && current - bias > closest ? 1.0 : 0.0;
+	
+	return shadow;
+}
+
+vec4 calcLightByDirection(Light light, vec3 direction, float shadowFactor) {
 	
 	vec3 normalizedNormal = normalize(normal);
 	vec4 ambientColor = vec4(light.color, 1.0f) * light.ambientIntensity;
@@ -83,10 +150,10 @@ vec4 calcLightByDirection(Light light, vec3 direction) {
 		}
 	}
 	
-	return ambientColor + diffColor + specularColor;
+	return ambientColor + (1.0 - shadowFactor) * (diffColor + specularColor);
 }
 
-vec4 calcDirectionalLightInTangentSpace(Light light) {
+vec4 calcDirectionalLightInTangentSpace(Light light, float shadowFactor) {
 	
 	vec3 normalMap = texture(normalTexture, texCoord).rgb;
 	vec3 normal = normalMap * 2.0 - 1.0;
@@ -113,11 +180,13 @@ vec4 calcDirectionalLightInTangentSpace(Light light) {
 		}
 	}
 	
-	return ambientColor + diffColor + specularColor;
+	return ambientColor + (1.0 - shadowFactor) * (diffColor + specularColor);
 }
 
 vec4 calcDirectionalLight() {
-	return calcDirectionalLightInTangentSpace(directionalLight.base);
+	
+	float shadowFactor = calcDirShadowFactorPCF(directionalLight);
+	return calcDirectionalLightInTangentSpace(directionalLight.base, shadowFactor);
 }
 
 vec4 CalcPointLight(PointLight light) {
@@ -126,7 +195,7 @@ vec4 CalcPointLight(PointLight light) {
 	float fragToLightDistance = length(direction);
 	direction = normalize(direction);
 	
-	vec4 color = calcLightByDirection(light.base, direction);
+	vec4 color = calcLightByDirection(light.base, direction, 0.0);
 	float attenuation = light.exponent * fragToLightDistance * fragToLightDistance +
 						light.linear * fragToLightDistance +
 						light.constant;

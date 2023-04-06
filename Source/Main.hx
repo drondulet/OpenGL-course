@@ -22,10 +22,14 @@ class Main extends Application {
 	
 	private var gl: WebGL2RenderContext;
 	private var currProgram: Shader;
+	private var dirShadowShader: Shader;
+	private var screenPlane: Shader;
 	private var camera: Camera;
 	
 	private var model: Mat4;
 	private var projection: Mat4;
+	
+	private var plane: Mesh;
 	
 	private var scene: Scene3d;
 	private var directionalLight: DirectinalLight;
@@ -52,6 +56,33 @@ class Main extends Application {
 		init();
 	}
 	
+	public override function update(deltaTime: Int):Void {
+		
+		if (camera != null) {
+			camera.update(deltaTime / 1000);
+		}
+	}
+	
+	override public function onWindowClose(): Void {
+		
+		scene.dispose();
+		currProgram.dispose();
+		
+		super.onWindowClose();
+	}
+	
+	public override function render(context: RenderContext): Void {
+		
+		switch(context.type) {
+			
+			case OPENGL, OPENGLES, WEBGL:
+				drawGl();
+			
+			default:
+				Log.warn("Current render context not supported by this sample");
+		}
+	}
+	
 	private function init(): Void {
 		
 		// #if js
@@ -73,6 +104,16 @@ class Main extends Application {
 		gl.uniform1i(currProgram.textureUniformLoc.normal, 1);
 		currProgram.unUse();
 		
+		dirShadowShader = new Shader();
+		dirShadowShader.createFromString(getShadowMapVertexShader(), getShadowMapFragmentShader(), window.context);
+		
+		screenPlane =  new Shader();
+		screenPlane.createFromString(getPlaneVertexShader(), getPlaneFragmentShader(), window.context);
+		screenPlane.use();
+		gl.uniform1i(screenPlane.textureUniformLoc.diffuse, 0);
+		gl.uniform1i(screenPlane.textureUniformLoc.normal, 1);
+		screenPlane.unUse();
+		
 		createMeshes();
 		
 		
@@ -80,7 +121,7 @@ class Main extends Application {
 		
 		
 		directionalLight = new DirectinalLight(1, 1, 1, 0.1);
-		directionalLight.direction = Vec3.fromValues(1, -1, -1);
+		directionalLight.direction = Vec3.fromValues(20, -20, -20);
 		directionalLight.diffuseIntensity = 0.9;
 		
 		
@@ -125,18 +166,40 @@ class Main extends Application {
 		
 		scene = new Scene3d();
 		
-		var brick: Texture = new Texture(ETextureType.diffuse);
-		brick.loadRGBA(Assets.getImage("assets/C01 008 Brick Wall 2048x2048.jpg"));
+		// var brick: Texture = new Texture(ETextureType.diffuse);
+		// brick.loadRGBA(Assets.getImage("assets/C01 008 Brick Wall 2048x2048.jpg"));
 		
-		var brickNormal: Texture = new Texture(ETextureType.normal);
-		brickNormal.loadRGBA(Assets.getImage("assets/C01 008 Brick Wall 2048x2048 Normal Map.jpg"));
+		// var brickNormal: Texture = new Texture(ETextureType.normal);
+		// brickNormal.loadRGBA(Assets.getImage("assets/C01 008 Brick Wall 2048x2048 Normal Map.jpg"));
+		
+		var grass: Texture = new Texture(ETextureType.diffuse);
+		grass.loadRGBA(Assets.getImage("assets/Stylized_Stone_Floor_005_basecolor.jpg"));
+		
+		var grassNormal: Texture = new Texture(ETextureType.normal);
+		grassNormal.loadRGBA(Assets.getImage("assets/Stylized_Stone_Floor_005_normal.jpg"));
 		
 		var material: Material = new Material(1, 32);
-		material.setDiffuseTexture(brick);
-		material.setNormalTexture(brickNormal);
+		material.setDiffuseTexture(grass);
+		material.setNormalTexture(grassNormal);
 		
 		var mesh: Mesh;
 		var model: Node3d;
+		
+		// screen plane
+		var pPlaneIndicies = new UInt16Array([
+			0, 3, 1,
+			1, 3, 2
+		]);
+		
+		var planeVertecies = new Float32Array([
+			//	x	y	z		u	v
+			-1.0,  1.0, 0.0,	0.0, 1.0,	0.0, -1.0, 0.0,
+			 1.0,  1.0, 0.0,	1.0, 1.0,	0.0, -1.0, 0.0,
+			 1.0, -1.0, 0.0,	1.0, 0.0,	0.0, -1.0, 0.0,
+			-1.0, -1.0, 0.0,	0.0, 0.0,	0.0, -1.0, 0.0
+		]);
+		
+		plane = Mesh.createFromRawData(planeVertecies, pPlaneIndicies, material);
 		
 		// plane
 		var pIndicies = new UInt16Array([
@@ -146,16 +209,16 @@ class Main extends Application {
 		
 		var pVertecies = new Float32Array([
 			//	x	y	z		u	v		norm x y z
-			-10.0, 0.0, -10.0,	0.0, 5.0,	0.0, -1.0, 0.0,
-			 10.0, 0.0, -10.0,	5.0, 5.0,	0.0, -1.0, 0.0,
-			 10.0, 0.0, 10.0,	5.0, 0.0,	0.0, -1.0, 0.0,
-			-10.0, 0.0, 10.0,	0.0, 0.0,	0.0, -1.0, 0.0,
+			-10.0, 0.0, -10.0,	0.0, 5.0,	0.0, 1.0, 0.0,
+			 10.0, 0.0, -10.0,	5.0, 5.0,	0.0, 1.0, 0.0,
+			 10.0, 0.0, 10.0,	5.0, 0.0,	0.0, 1.0, 0.0,
+			-10.0, 0.0, 10.0,	0.0, 0.0,	0.0, 1.0, 0.0,
 		]);
 		
 		mesh = Mesh.createFromRawData(pVertecies, pIndicies, material);
-		mesh.setShader(currProgram);
 		model = new Node3d();
 		model.setMesh(mesh);
+		model.setScale(2);
 		scene.addNode(model);
 		// model.visible = false;
 		
@@ -163,7 +226,6 @@ class Main extends Application {
 		var assetPath: String = "assets/glb/Lantern.glb";
 		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
 		model = gltfBuilder.getNodeWithName("Lantern");
-		model.setMeshShader(currProgram);
 		model.setPosition(Vec3.fromValues(5.0, 0.0, 0.0));
 		model.setScale(0.5);
 		scene.addNode(model);
@@ -172,7 +234,6 @@ class Main extends Application {
 		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
 		model = gltfBuilder.getNodeWithName(null);
 		model.getChildAt(0).meshes[0].material.setNormalTexture(Texture.defaultNormalMap);
-		model.setMeshShader(currProgram);
 		model.resetTransform();
 		model.setPosition(Vec3.fromValues(0.0, 1.0, 0.0));
 		model.setScale(2);
@@ -181,7 +242,6 @@ class Main extends Application {
 		assetPath = "assets/gltf/lantern/Lantern.gltf";
 		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
 		model = gltfBuilder.getNodeWithName("Lantern");
-		model.setMeshShader(currProgram);
 		model.setPosition(Vec3.fromValues(-5.0, 0.0, -5.0));
 		model.setRotation(180, Vec3.fromValues(0.0, 1.0, 0.0));
 		model.setScale(0.5);
@@ -215,24 +275,20 @@ class Main extends Application {
 		return Assets.getText("assets/fragment.glsl");
 	}
 	
-	override public function onWindowClose(): Void {
-		
-		scene.dispose();
-		currProgram.dispose();
-		
-		super.onWindowClose();
+	private function getShadowMapVertexShader(): String {
+		return Assets.getText("assets/dirShadowMapVert.glsl");
 	}
 	
-	public override function render(context: RenderContext): Void {
-		
-		switch(context.type) {
-			
-			case OPENGL, OPENGLES, WEBGL:
-				drawGl();
-			
-			default:
-				Log.warn("Current render context not supported by this sample");
-		}
+	private function getShadowMapFragmentShader(): String {
+		return Assets.getText("assets/dirShadowMapFrag.glsl");
+	}
+	
+	private function getPlaneVertexShader(): String {
+		return Assets.getText("assets/planeVert.glsl");
+	}
+	
+	private function getPlaneFragmentShader(): String {
+		return Assets.getText("assets/planeFrag.glsl");
 	}
 	
 	private function drawGl(): Void {
@@ -243,6 +299,39 @@ class Main extends Application {
 			return;
 		}
 		
+		dirShadowMapPass(directionalLight);
+		renderPass(projection, camera.getViewMatrix());
+		// renderPass(directionalLight.calcLightTransform(), Mat4Tools.identity());
+		// renderPlane();
+	}
+	
+	private function dirShadowMapPass(dirLight: DirectinalLight): Void {
+		
+		dirShadowShader.use();
+		dirLight.shadowMap.begin();
+		
+		gl.enable(gl.DEPTH_TEST);
+		
+		gl.viewport(0, 0, dirLight.shadowMap.shadowWidth, dirLight.shadowMap.shadowHeight);
+		gl.clear(gl.DEPTH_BUFFER_BIT);
+		
+		dirShadowShader.setDirLightTransform(dirLight.calcLightTransform());
+		
+		scene.draw(dirShadowShader);
+		
+		gl.disable(gl.DEPTH_TEST);
+		
+		dirLight.shadowMap.end();
+		dirShadowShader.unUse();
+	}
+	
+	private function renderPass(proj: Mat4, view: Mat4): Void {
+		
+		currProgram.use();
+		currProgram.useDirectionalLight(directionalLight);
+		currProgram.usePointLights(pointLights);
+		currProgram.useSpotLights(spotLights);
+		
 		gl.viewport(0, 0, window.width, window.height);
 		gl.enable(gl.DEPTH_TEST);
 		
@@ -252,29 +341,39 @@ class Main extends Application {
 		gl.enable(gl.CULL_FACE);
 		gl.cullFace(gl.BACK);
 		
-		currProgram.use();
-		currProgram.useDirectionalLight(directionalLight);
-		currProgram.usePointLights(pointLights);
-		currProgram.useSpotLights(spotLights);
-		
-		// calculate MVP and put it to shader
-		gl.uniformMatrix4fv(currProgram.uniformView, false, camera.getViewMatrix());
-		gl.uniformMatrix4fv(currProgram.uniformProjection, false, projection);
+		// calculate VP mat and put it to shader
+		gl.uniformMatrix4fv(currProgram.uniformView, false, view);
+		gl.uniformMatrix4fv(currProgram.uniformProjection, false, proj);
 		gl.uniform3fv(currProgram.uniformCameraPosition, camera.position);
 		gl.uniform3fv(currProgram.vertexViewPos, camera.position);
 		
-		scene.draw();
+		currProgram.setDirLightTransform(directionalLight.calcLightTransform());
+		directionalLight.shadowMap.activate(gl.TEXTURE2);
+		currProgram.setDirShadowMapTextureUnit(2);
+		
+		scene.draw(currProgram);
+		
+		gl.disable(gl.CULL_FACE);
+		gl.disable(gl.DEPTH_TEST);
 		
 		currProgram.unUse();
-		
-		gl.disable(gl.DEPTH_TEST);
 	}
 	
-	public override function update(deltaTime: Int):Void {
+	private function renderPlane(): Void {
 		
-		if (camera != null) {
-			camera.update(deltaTime / 1000);
-		}
+		screenPlane.use();
+		
+		gl.viewport(0, 0, window.width, window.height);
+		
+		gl.clearColor(0.05, 0.05, 0.05, 1.0);
+		gl.clear(gl.COLOR_BUFFER_BIT);
+		
+		directionalLight.shadowMap.activate(gl.TEXTURE2);
+		screenPlane.setDirShadowMapTextureUnit(2);
+		
+		plane.renderMesh(Mat4Tools.identity(), screenPlane);
+		
+		screenPlane.unUse();
 	}
 	
 	private function calcAvgNormals(indicies: UInt16Array, vertecies: Float32Array, vLength: Int, normalOffset: Int): Void {

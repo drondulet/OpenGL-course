@@ -5,6 +5,7 @@ import lime.graphics.WebGL2RenderContext;
 import lime.graphics.opengl.GLProgram;
 import lime.graphics.opengl.GLUniformLocation;
 import lime.utils.Log;
+import mme.math.glmatrix.Mat4;
 
 typedef DirectionalLightUniforms = {
 	var color: Null<GLUniformLocation>;
@@ -48,6 +49,7 @@ class Shader {
 	public var uniformModel(default, null): Null<GLUniformLocation>;
 	public var uniformView(default, null): Null<GLUniformLocation>;
 	public var uniformProjection(default, null): Null<GLUniformLocation>;
+	public var dirLightTransformUniformLoc(default, null): Null<GLUniformLocation>;
 	
 	public var uniformSpecularIntensity(default, null): Null<GLUniformLocation>;
 	public var uniformSpecularShininess(default, null): Null<GLUniformLocation>;
@@ -57,6 +59,7 @@ class Shader {
 	public var vertexViewPos(default, null): Null<GLUniformLocation>;
 	
 	public var textureUniformLoc(default, null): TextureUniforms;
+	public var dirShadowMapUniformLoc(default, null): Null<GLUniformLocation>;
 	
 	private var directLightUniformLoc: DirectionalLightUniforms;
 	private var pointLightsUniformLoc: Array<PointLightUniforms>;
@@ -69,6 +72,23 @@ class Shader {
 	public function new() {
 		
 		program = null;
+		uniformModel = null;
+		uniformProjection = null;
+	}
+	
+	public function dispose(): Void {
+		
+		if (program != null) {
+			
+			// gl.detachShader(program, vertex);
+			// gl.detachShader(program, fragment);
+			// gl.deleteShader(vertex);
+			// gl.deleteShader(fragment);
+			
+			gl.deleteProgram(program);
+			program = null;
+		}
+		
 		uniformModel = null;
 		uniformProjection = null;
 	}
@@ -152,6 +172,9 @@ class Shader {
 			normal: gl.getUniformLocation(program, "normalTexture"),
 		}
 		
+		dirShadowMapUniformLoc = gl.getUniformLocation(program, "dirShadowMapTexture");
+		dirLightTransformUniformLoc = gl.getUniformLocation(program, "dirLightSpaceTransform");
+		
 		uniformCameraPosition = gl.getUniformLocation(program, "camPosition");
 	}
 	
@@ -168,21 +191,20 @@ class Shader {
 		gl.useProgram(null);
 	}
 	
-	public function dispose(): Void {
-		
-		if (program != null) {
-			
-			// gl.detachShader(program, vertex);
-			// gl.detachShader(program, fragment);
-			// gl.deleteShader(vertex);
-			// gl.deleteShader(fragment);
-			
-			gl.deleteProgram(program);
-			program = null;
-		}
-		
-		uniformModel = null;
-		uniformProjection = null;
+	public function setDiffuseTextureUnit(textureUnit: Int): Void {
+		gl.uniform1i(textureUniformLoc.diffuse, textureUnit);
+	}
+	
+	public function setNormalTextureUnit(textureUnit: Int): Void {
+		gl.uniform1i(textureUniformLoc.normal, textureUnit);
+	}
+	
+	public function setDirShadowMapTextureUnit(textureUnit: Int): Void {
+		gl.uniform1i(dirShadowMapUniformLoc, textureUnit);
+	}
+	
+	public function setDirLightTransform(transform: Mat4): Void {
+		gl.uniformMatrix4fv(dirLightTransformUniformLoc, false, transform);
 	}
 	
 	public function useDirectionalLight(light: DirectinalLight): Void {

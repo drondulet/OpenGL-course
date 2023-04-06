@@ -13,12 +13,14 @@ out vec3 fragPos;
 out vec3 tangentLightDir;
 out vec3 tangentViewPos;
 out vec3 tangentFragPos;
+out vec4 dirLightSpacePos;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform vec3 lightDir;
 uniform vec3 viewPos;
+uniform mat4 dirLightSpaceTransform; // projection * view
 
 void main()
 {
@@ -42,4 +44,6 @@ void main()
 	// tangentLightDir.z = dot(-lightDir, N);
 	tangentViewPos = TBN * viewPos;
 	tangentFragPos = TBN * fragPos;
+	
+	dirLightSpacePos = dirLightSpaceTransform * model * pos4;
 }
