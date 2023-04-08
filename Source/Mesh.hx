@@ -57,6 +57,14 @@ class Mesh {
 		return inst;
 	}
 	
+	static public function createFromGLMeshData(data: GlMeshData, material: Material): Mesh {
+		
+		var inst: Mesh = new Mesh();
+		inst.createFromVertexBufferData(data.vertices, data.indices);
+		inst.material = material;
+		return inst;
+	}
+	
 	static public function createFromRawData(vertices: Float32Array, indices: UInt16Array, material: Material): Mesh {
 		
 		var inst: Mesh = new Mesh();

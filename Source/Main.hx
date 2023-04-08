@@ -10,7 +10,9 @@ import lime.utils.Float32Array;
 import lime.utils.Log;
 import lime.utils.UInt16Array;
 import mme.math.glmatrix.Mat4;
+import mme.math.glmatrix.Vec2;
 import mme.math.glmatrix.Vec3;
+import mme.math.glmatrix.Vec4;
 import scene.Node3d;
 import scene.Scene3d;
 
@@ -172,6 +174,10 @@ class Main extends Application {
 		// var brickNormal: Texture = new Texture(ETextureType.normal);
 		// brickNormal.loadRGBA(Assets.getImage("assets/C01 008 Brick Wall 2048x2048 Normal Map.jpg"));
 		
+		// var material: Material = new Material(1, 32);
+		// material.setDiffuseTexture(brick);
+		// material.setNormalTexture(brickNormal);
+		
 		var grass: Texture = new Texture(ETextureType.diffuse);
 		grass.loadRGBA(Assets.getImage("assets/Stylized_Stone_Floor_005_basecolor.jpg"));
 		
@@ -192,14 +198,14 @@ class Main extends Application {
 		]);
 		
 		var planeVertecies = new Float32Array([
-			//	x	y	z		u	v
-			-1.0,  1.0, 0.0,	0.0, 1.0,	0.0, -1.0, 0.0,
-			 1.0,  1.0, 0.0,	1.0, 1.0,	0.0, -1.0, 0.0,
-			 1.0, -1.0, 0.0,	1.0, 0.0,	0.0, -1.0, 0.0,
-			-1.0, -1.0, 0.0,	0.0, 0.0,	0.0, -1.0, 0.0
+			//	x	y	z		u	v		norm x y z
+			-1.0,  1.0, 0.0,	0.0, 1.0,	0.0, 0.0, 1.0,
+			 1.0,  1.0, 0.0,	1.0, 1.0,	0.0, 0.0, 1.0,
+			 1.0, -1.0, 0.0,	1.0, 0.0,	0.0, 0.0, 1.0,
+			-1.0, -1.0, 0.0,	0.0, 0.0,	0.0, 0.0, 1.0
 		]);
 		
-		plane = Mesh.createFromRawData(planeVertecies, pPlaneIndicies, material);
+		// plane = Mesh.createFromRawData(planeVertecies, pPlaneIndicies, material);
 		
 		// plane
 		var pIndicies = new UInt16Array([
@@ -207,15 +213,15 @@ class Main extends Application {
 			1, 3, 2
 		]);
 		
-		var pVertecies = new Float32Array([
-			//	x	y	z		u	v		norm x y z
-			-10.0, 0.0, -10.0,	0.0, 5.0,	0.0, 1.0, 0.0,
-			 10.0, 0.0, -10.0,	5.0, 5.0,	0.0, 1.0, 0.0,
-			 10.0, 0.0, 10.0,	5.0, 0.0,	0.0, 1.0, 0.0,
-			-10.0, 0.0, 10.0,	0.0, 0.0,	0.0, 1.0, 0.0,
-		]);
+		var meshBuilder: MeshBuilder = new MeshBuilder();
+		meshBuilder.addPoint(Vec3.fromValues(-10, 0, -10), Vec3.fromValues(0, 1, 0), Vec2.fromValues(0, 5), Vec4.fromValues(-1, 0, 0, 1))
+			.addPoint(Vec3.fromValues( 10, 0, -10), Vec3.fromValues(0, 1, 0), Vec2.fromValues(5, 5), Vec4.fromValues(-1, 0, 0, 1))
+			.addPoint(Vec3.fromValues( 10, 0,  10), Vec3.fromValues(0, 1, 0), Vec2.fromValues(5, 0), Vec4.fromValues(-1, 0, 0, 1))
+			.addPoint(Vec3.fromValues(-10, 0,  10), Vec3.fromValues(0, 1, 0), Vec2.fromValues(0, 0), Vec4.fromValues(-1, 0, 0, 1))
+			.setupIndices(pIndicies);
 		
-		mesh = Mesh.createFromRawData(pVertecies, pIndicies, material);
+		var meshData = meshBuilder.build();
+		mesh = Mesh.createFromGLMeshData(meshData, material);
 		model = new Node3d();
 		model.setMesh(mesh);
 		model.setScale(2);
@@ -226,7 +232,7 @@ class Main extends Application {
 		var assetPath: String = "assets/glb/Lantern.glb";
 		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
 		model = gltfBuilder.getNodeWithName("Lantern");
-		model.setPosition(Vec3.fromValues(5.0, 0.0, 0.0));
+		model.setPosition(Vec3.fromValues(5.0, -0.1, 0.0));
 		model.setScale(0.5);
 		scene.addNode(model);
 		
@@ -242,7 +248,7 @@ class Main extends Application {
 		assetPath = "assets/gltf/lantern/Lantern.gltf";
 		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
 		model = gltfBuilder.getNodeWithName("Lantern");
-		model.setPosition(Vec3.fromValues(-5.0, 0.0, -5.0));
+		model.setPosition(Vec3.fromValues(-5.0, -0.1, -5.0));
 		model.setRotation(180, Vec3.fromValues(0.0, 1.0, 0.0));
 		model.setScale(0.5);
 		scene.addNode(model);

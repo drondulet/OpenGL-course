@@ -19,7 +19,8 @@ class DirectinalLight extends Light {
 		super(r, g, b, ambientIntensity);
 		direction = Vec3.fromValues(0.0, -1.0, -1.0);
 		shadowMap = new ShadowMap();
-		shadowMap.init(2048, 2048);
+		var bufferSize: Int = 4096;
+		shadowMap.init(bufferSize, bufferSize);
 		lightProj = Mat4Tools.ortho(-20.0, 20.0, -20.0, 20.0, 0.1, 80.0);
 	}
 	

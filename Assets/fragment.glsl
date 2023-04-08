@@ -54,7 +54,7 @@ uniform SpotLight spotLights[MAX_SPOT_LIGHTS];
 
 uniform sampler2D diffuseTexture;
 uniform sampler2D normalTexture;
-uniform sampler2D dirShadowMapTexture;
+uniform highp sampler2DShadow dirShadowMapTexture;
 
 uniform Material material;
 
@@ -83,8 +83,8 @@ float calcDirShadowFactorPCF(DirectionalLight light) {
 		for (int x = -1; x < 2; x++) {
 			for (int y = -1; y < 2; y++) {
 				
-				float pcfDepth = texture(dirShadowMapTexture, projCoords.xy + vec2(x, y) * texelSize).r;
-				shadow += current - bias > pcfDepth ? 1.0 : 0.0;
+				// float pcfDepth = texture(dirShadowMapTexture, projCoords.xy + vec2(x, y) * texelSize).r;
+				// shadow += current - bias > pcfDepth ? 1.0 : 0.0;
 			}
 		}
 		
@@ -109,18 +109,11 @@ float calcDirShadowFactor(DirectionalLight light) {
 	vec3 projCoords = dirLightSpacePos.xyz / dirLightSpacePos.w;
 	projCoords = (projCoords * 0.5) + 0.5;
 	
-	// clamp to border replacement
-	bool outRange = projCoords.x < 0.0 || projCoords.x > 1.0 || projCoords.y < 0.0 || projCoords.y > 1.0;
-	
-	vec3 normalizedNormal = normalize(normal);
-	vec3 normalizedLightDir = normalize(light.direction);
-	
-	float bias = max(0.05 * (1.0 - dot(normalizedNormal, normalizedLightDir)), 0.005);
-	
-	float closest = texture(dirShadowMapTexture, projCoords.xy).r;
-	float current = projCoords.z;
-	
-	float shadow = !outRange && current - bias > closest ? 1.0 : 0.0;
+	// float bias = 0.0002; // 8192
+	float bias = 0.0003; // 4096
+	// float bias = 0.0005; // 2048
+	// float bias = 0.001; // 1024
+	float shadow = 1.0 - texture(dirShadowMapTexture, vec3(projCoords.xy, projCoords.z - bias));
 	
 	return shadow;
 }
@@ -185,7 +178,7 @@ vec4 calcDirectionalLightInTangentSpace(Light light, float shadowFactor) {
 
 vec4 calcDirectionalLight() {
 	
-	float shadowFactor = calcDirShadowFactorPCF(directionalLight);
+	float shadowFactor = calcDirShadowFactor(directionalLight);
 	return calcDirectionalLightInTangentSpace(directionalLight.base, shadowFactor);
 }
 
