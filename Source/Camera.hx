@@ -55,6 +55,8 @@ class Camera {
 		accelMultiplier = 3;
 		currentAccel = 1;
 		
+		delta = 0;
+		
 		movingDirection = Vec2.fromValues(0, 0);
 		
 		singInputs();

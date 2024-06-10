@@ -7,6 +7,7 @@ import lime.graphics.opengl.GLBuffer;
 import lime.graphics.opengl.GLVertexArrayObject;
 import lime.utils.ArrayBufferView;
 import lime.utils.Float32Array;
+import lime.utils.Log;
 import lime.utils.UInt16Array;
 import mme.math.glmatrix.Mat4;
 
@@ -159,6 +160,9 @@ class Mesh {
 		#end
 		
 		meshVAO = gl.createVertexArray();
+		if (meshVAO == null) {
+			Log.error('Error creating VAO: ${gl.getError()}');
+		}
 		gl.bindVertexArray(meshVAO);
 		
 		indexBuffer = gl.createBuffer();

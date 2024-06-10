@@ -6,7 +6,6 @@ import Mesh.GlMeshData;
 import Mesh.GlVertexBufferData;
 import haxe.io.Bytes;
 import haxe.io.BytesBuffer;
-import lime.utils.ArrayBufferView;
 import lime.utils.Float32Array;
 import lime.utils.UInt16Array;
 import mme.math.glmatrix.Vec2;
@@ -133,11 +132,10 @@ class MeshBuilder {
 		var byteBuffer = new BytesBuffer();
 		
 		for (point in points) {
-			
-			byteBuffer.add(cast(point.coords, ArrayBufferView).buffer);
-			byteBuffer.add(cast(point.texCoords, ArrayBufferView).buffer);
-			byteBuffer.add(cast(point.normal, ArrayBufferView).buffer);
-			byteBuffer.add(cast(point.tangent, ArrayBufferView).buffer);
+			byteBuffer.add(cast(point.coords, Float32Array).toBytes());
+			byteBuffer.add(cast(point.texCoords, Float32Array).toBytes());
+			byteBuffer.add(cast(point.normal, Float32Array).toBytes());
+			byteBuffer.add(cast(point.tangent, Float32Array).toBytes());
 		}
 		
 		// TODO: make some ByteHelper for this

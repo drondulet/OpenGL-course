@@ -15,6 +15,12 @@ typedef MaterialTextures = {
 class Material {
 	
 	static private final textureCache: Map<Image, Texture> = [];
+	static public function clearCache(): Void {
+		for (texture in textureCache) {
+			texture.dispose();
+		}
+		textureCache.clear();
+	}
 	
 	static public function createFromGLTFBuilder(mat: gltf.types.Material, builder: GLTFBuilder): Material {
 		

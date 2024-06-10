@@ -5,6 +5,7 @@ import gltfTools.GLTFBuilder;
 import lime.app.Application;
 import lime.graphics.RenderContext;
 import lime.graphics.WebGL2RenderContext;
+import lime.ui.KeyCode;
 import lime.utils.Assets;
 import lime.utils.Float32Array;
 import lime.utils.Log;
@@ -37,6 +38,8 @@ class Main extends Application {
 	private var directionalLight: DirectinalLight;
 	private var pointLights: Array<PointLight>;
 	private var spotLights: Array<SpotLight>;
+	private var sunNode: Node3d;
+	private var sunNodeRoot: Node3d;
 	
 	public function new() {
 		super();
@@ -60,17 +63,25 @@ class Main extends Application {
 	
 	public override function update(deltaTime: Int):Void {
 		
-		if (camera != null) {
-			camera.update(deltaTime / 1000);
-		}
+		camera?.update(deltaTime / 1000);
+		sunNodeRoot?.setRotation(deltaTime * 0.01, Vec3.fromValues(0, 1, 0));
 	}
 	
 	override public function onWindowClose(): Void {
 		
-		scene.dispose();
-		currProgram.dispose();
+		scene?.dispose();
+		scene = null;
 		
-		super.onWindowClose();
+		currProgram?.dispose();
+		currProgram = null;
+		
+		dirShadowShader?.dispose();
+		dirShadowShader = null;
+		
+		screenPlane?.dispose();
+		screenPlane = null;
+		
+		Material.clearCache();
 	}
 	
 	public override function render(context: RenderContext): Void {
@@ -94,6 +105,9 @@ class Main extends Application {
 		
 		GraphicsContext.init(window);
 		gl = GraphicsContext.gl;
+		window.onKeyDown.add((key, mod) -> if (key == KeyCode.ESCAPE) {
+			this.window.close();
+		});
 		
 		projection = Mat4Tools.perspective(45, window.width / window.height, 0.1, 10000);
 		
@@ -168,6 +182,11 @@ class Main extends Application {
 		
 		scene = new Scene3d();
 		
+		sunNode = new Node3d(Mat4.fromTranslation(Vec3.fromValues(-1, 20, 20)));
+		sunNodeRoot = new Node3d();
+		sunNodeRoot.addChild(sunNode);
+		scene.addNode(sunNodeRoot);
+		
 		// var brick: Texture = new Texture(ETextureType.diffuse);
 		// brick.loadRGBA(Assets.getImage("assets/C01 008 Brick Wall 2048x2048.jpg"));
 		
@@ -228,30 +247,41 @@ class Main extends Application {
 		scene.addNode(model);
 		// model.visible = false;
 		
-		var gltfBuilder: GLTFBuilder;
 		var assetPath: String = "assets/glb/Lantern.glb";
-		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
-		model = gltfBuilder.getNodeWithName("Lantern");
-		model.setPosition(Vec3.fromValues(5.0, -0.1, 0.0));
-		model.setScale(0.5);
-		scene.addNode(model);
+		GLTFBuilder.getFromFile(assetPath).onComplete((gltfBuilder) -> {
+			
+			model = gltfBuilder.getNodeWithName("Lantern");
+			model.setPosition(Vec3.fromValues(5.0, -0.1, 0.0));
+			model.setScale(0.5);
+			scene.addNode(model);
+			gltfBuilder.dispose();
+		});
 		
 		assetPath = 'assets/glb/BoxTextured.glb';
-		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
-		model = gltfBuilder.getNodeWithName(null);
-		model.getChildAt(0).meshes[0].material.setNormalTexture(Texture.defaultNormalMap);
-		model.resetTransform();
-		model.setPosition(Vec3.fromValues(0.0, 1.0, 0.0));
-		model.setScale(2);
-		scene.addNode(model);
+		GLTFBuilder.getFromFile(assetPath).onComplete((gltfBuilder) -> {
+			
+			model = gltfBuilder.getNodeWithName(null);
+			model.getChildAt(0).meshes[0].material.setNormalTexture(Texture.defaultNormalMap);
+			model.resetTransform();
+			model.setPosition(Vec3.fromValues(0.0, 1.0, 0.0));
+			model.setScale(2);
+			scene.addNode(model);
+			
+			// sunNode.setMesh(model.getChildAt(0).meshes[0]);
+			gltfBuilder.dispose();
+		});
 		
-		assetPath = "assets/gltf/lantern/Lantern.gltf";
-		gltfBuilder = GLTFBuilder.getFromFile(assetPath);
-		model = gltfBuilder.getNodeWithName("Lantern");
-		model.setPosition(Vec3.fromValues(-5.0, -0.1, -5.0));
-		model.setRotation(180, Vec3.fromValues(0.0, 1.0, 0.0));
-		model.setScale(0.5);
-		scene.addNode(model);
+		assetPath = "assets/glb/Lantern.glb";
+		// assetPath = "assets/gltf/lantern/Lantern.gltf";
+		GLTFBuilder.getFromFile(assetPath).onComplete((gltfBuilder) -> {
+			
+			model = gltfBuilder.getNodeWithName("Lantern");
+			model.setPosition(Vec3.fromValues(-5.0, -0.1, -5.0));
+			model.setRotation(180, Vec3.fromValues(0.0, 1.0, 0.0));
+			model.setScale(0.5);
+			scene.addNode(model);
+			gltfBuilder.dispose();
+		});
 		
 		// assetPath = 'assets/gltf/sponza/Sponza.gltf';
 		// gltfBuilder = GLTFBuilder.getFromFile(assetPath);
@@ -334,6 +364,7 @@ class Main extends Application {
 	private function renderPass(proj: Mat4, view: Mat4): Void {
 		
 		currProgram.use();
+		Vec3.fromValues(0, 0, 0).subtract(sunNodeRoot.transform.multiplyVec3(sunNode.position), directionalLight.direction);
 		currProgram.useDirectionalLight(directionalLight);
 		currProgram.usePointLights(pointLights);
 		currProgram.useSpotLights(spotLights);

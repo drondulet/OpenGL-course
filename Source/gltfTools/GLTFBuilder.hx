@@ -11,6 +11,8 @@ import haxe.ds.Vector;
 import haxe.io.Bytes;
 import haxe.io.BytesBuffer;
 import haxe.io.Path;
+import lime.app.Future;
+import lime.app.Promise;
 import lime.graphics.Image;
 import lime.utils.ArrayBufferView;
 import lime.utils.Assets;
@@ -121,7 +123,7 @@ class GLTFBuilder {
 	}
 	
 	
-	static public function getFromFile(path: String, ?binPath: String, ?texturesPath: String): GLTFBuilder {
+	static public function getFromFile(path: String, ?binPath: String, ?texturesPath: String): Future<GLTFBuilder> {
 		
 		var inst: GLTFBuilder = new GLTFBuilder();
 		
@@ -145,9 +147,15 @@ class GLTFBuilder {
 			inst.gltf = GLTF.parseAndLoad(rawJson, binBuffers);
 		}
 		
-		inst.loadTextures();
+		var future = inst.loadTextures();
+		if (future.isComplete) {
+			return Future.withValue(inst);
+		}
 		
-		return inst;
+		var promise: Promise<GLTFBuilder> = new Promise();
+		future.onComplete((_) -> promise.complete(inst));
+		
+		return promise.future;
 	}
 	
 	
@@ -162,7 +170,8 @@ class GLTFBuilder {
 	}
 	
 	public function dispose(): Void {
-		
+		gltf = null;
+		textures = null;
 	}
 	
 	public function getNodeWithName(name: String): Null<Node3d> {
@@ -220,18 +229,38 @@ class GLTFBuilder {
 		return result;
 	}
 	
-	private function loadTextures(): Void {
+	private function loadTextures(): Future<Bool> {
 		
 		textures = new Vector(gltf.images.length);
 		
+		var futures: Map<Future<Image>, Bool> = [];
 		for (i in 0 ... gltf.images.length) {
 			
 			if (isGlb) {
-				Image.loadFromBytes(extractBytesFromBufferView(gltf.images[i].bufferView)).onComplete(image -> textures[i] = image);
+				
+				futures[Image.loadFromBytes(extractBytesFromBufferView(gltf.images[i].bufferView))
+					.onComplete(image -> textures[i] = image)] = true; // HTML5 creates async
+				// textures[i] = Image.fromBytes(extractBytesFromBufferView(gltf.images[i].bufferView));
 			}
 			else {
 				textures[i] = Assets.getImage('${texturePath}/${gltf.images[i].uri}');
 			}
 		}
+		
+		if (!futures.iterator().hasNext()) return Future.withValue(true);
+		
+		var promise: Promise<Bool> = new Promise();
+		for(future in futures.keys()) {
+			
+			future.onComplete((_) -> {
+				
+				futures.remove(future);
+				if (!futures.iterator().hasNext()) {
+					promise.complete(true);
+				}
+			});
+		}
+		
+		return promise.future;
 	}
 }

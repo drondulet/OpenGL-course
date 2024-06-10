@@ -26,5 +26,7 @@ class GraphicsContext {
 			Log.error('Can not get render context');
 			return;
 		}
+		
+		// window.onClose.add(() -> gl = null, true);
 	}
 }

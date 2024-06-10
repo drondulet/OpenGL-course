@@ -79,12 +79,6 @@ class Shader {
 	public function dispose(): Void {
 		
 		if (program != null) {
-			
-			// gl.detachShader(program, vertex);
-			// gl.detachShader(program, fragment);
-			// gl.deleteShader(vertex);
-			// gl.deleteShader(fragment);
-			
 			gl.deleteProgram(program);
 			program = null;
 		}
@@ -101,7 +95,7 @@ class Shader {
 			Log.error('Error creating shader program');
 		}
 		
-		// WebGL returns true/flase, OpenGL returns 1/0
+		// WebGL returns true/false, OpenGL returns 1/0
 		var status: Dynamic = gl.getProgramParameter(program, gl.VALIDATE_STATUS);
 		var intStatus: Null<Int> = Std.parseInt(Std.string(status));
 		var boolStatus: Bool = status;

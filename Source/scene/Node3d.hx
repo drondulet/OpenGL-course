@@ -4,6 +4,7 @@ import gltf.types.Node;
 import gltfTools.GLTFBuilder;
 import haxe.ds.Vector;
 import mme.math.glmatrix.Mat4;
+import mme.math.glmatrix.Quat;
 import mme.math.glmatrix.Vec3;
 
 using MathHelper;
@@ -37,11 +38,20 @@ class Node3d {
 	public var parent(default, null): Null<Node3d>;
 	public var name(default, null): Null<String>;
 	public var meshes(default, null): Vector<Mesh>;
+	public var transform(default, null): Mat4;
 	public var visible: Bool;
+	
+	public var position(get, never): Vec3;
+	private function get_position():Vec3 {
+		return transform.getTranslation();
+	}
+	public var rotation(get, never): Quat;
+	private function get_rotation(): Quat {
+		return transform.getRotation();
+	}
 	
 	private var children: Array<Node3d>;
 	private var scene: Null<Scene3d>;
-	private var transform: Mat4;
 	
 	public function new(?transform: Null<Mat4>) {
 		
@@ -98,7 +108,10 @@ class Node3d {
 	}
 	
 	public function setPosition(pos: Vec3): Void {
-		transform.translate(pos, transform);
+		// transform.translate(pos, transform);
+		transform[12] = pos.x;
+		transform[13] = pos.y;
+		transform[14] = pos.z;
 	}
 	
 	public function setRotation(angleDeg: Float, axis: Vec3): Void {

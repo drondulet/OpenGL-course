@@ -109,10 +109,7 @@ float calcDirShadowFactor(DirectionalLight light) {
 	vec3 projCoords = dirLightSpacePos.xyz / dirLightSpacePos.w;
 	projCoords = (projCoords * 0.5) + 0.5;
 	
-	// float bias = 0.0002; // 8192
-	float bias = 0.0003; // 4096
-	// float bias = 0.0005; // 2048
-	// float bias = 0.001; // 1024
+	float bias = 0.002;
 	float shadow = 1.0 - texture(dirShadowMapTexture, vec3(projCoords.xy, projCoords.z - bias));
 	
 	return shadow;
